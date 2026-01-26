@@ -73,18 +73,23 @@ async function seedDatabase() {
     const hashedPassword = await bcrypt.hash("admin123", 10);
     const user = await storage.createUser({
       username: "admin",
-      password: hashedPassword
+      password: hashedPassword,
+      fullName: "System Admin",
+      email: "admin@sterling.co.uk",
+      phoneNumber: "+44 7000 000000",
+      address: "1 Bank Plaza, London, EC1A 1BB"
     });
 
     await storage.createAccount(user.id, {
-      type: "Main Checking",
+      type: "Checking Account",
       balance: "12450.00",
-      currency: "USD",
-      accountNumber: "**** 4582"
+      currency: "GBP",
+      accountNumber: "00123456",
+      sortCode: "10-20-30"
     });
     
     await storage.createTransaction(user.id, {
-      title: "Apple Store",
+      title: "Apple Store London",
       amount: "129.00",
       type: "debit",
       category: "Shopping",
