@@ -4,19 +4,26 @@ import { z } from "zod";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  username: text("username").unique().notNull(),
+  username: text("username").unique().notNull(), // This will store email or phone
   password: text("password").notNull(),
+  email: text("email").unique(),
+  phone: text("phone").unique(),
 });
 
 export const transactions = pgTable("transactions", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
+  recipientId: integer("recipient_id").references(() => users.id), // Null if recipient not registered
+  pendingRecipientIdentifier: text("pending_recipient_identifier"), // email or phone for unregistered users
   title: text("title").notNull(),
   amount: numeric("amount").notNull(),
-  type: text("type", { enum: ["credit", "debit"] }).notNull(),
+  type: text("type", { enum: ["credit", "debit", "withdrawal", "pending_send"] }).notNull(),
   category: text("category").notNull(),
   icon: text("icon").notNull(),
   date: timestamp("date").defaultNow().notNull(),
+  status: text("status", { enum: ["completed", "pending", "refunded", "withdrawn"] }).default("completed").notNull(),
+  expiresAt: timestamp("expires_at"),
+  bankingInfo: text("banking_info"), // For withdrawals: sort code, account, name
 });
 
 export const accounts = pgTable("accounts", {
