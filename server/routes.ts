@@ -5,6 +5,7 @@ import { setupAuth } from "./auth";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import { insertWithdrawalSchema } from "@shared/schema";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -22,8 +23,46 @@ export async function registerRoutes(
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
       const input = api.transactions.create.input.parse(req.body);
-      const transaction = await storage.createTransaction(req.user.id, input);
-      res.status(201).json(transaction);
+      const accountsList = await storage.getAccounts(req.user.id);
+      const primaryAccount = accountsList[0];
+      
+      const amount = Math.abs(Number(input.amount));
+      if (Number(primaryAccount.balance) < amount) {
+        return res.status(400).json({ message: "Insufficient balance" });
+      }
+
+      // Check if recipient exists
+      const recipient = await storage.getUserByCredential(input.title);
+      
+      if (recipient) {
+        // Direct transfer
+        await storage.createTransaction(req.user.id, {
+          ...input,
+          amount: (-amount).toString(),
+          status: "completed"
+        });
+        await storage.createTransaction(recipient.id, {
+          title: `From ${req.user.username}`,
+          amount: amount.toString(),
+          type: "credit",
+          category: input.category,
+          icon: "arrow-down-left",
+          status: "completed"
+        });
+        await storage.updateAccountBalance(req.user.id, (-amount).toString());
+        await storage.updateAccountBalance(recipient.id, amount.toString());
+        res.status(201).json({ message: "Transfer successful" });
+      } else {
+        // Pending transfer to email/phone
+        const transaction = await storage.createTransaction(req.user.id, {
+          ...input,
+          amount: (-amount).toString(),
+          status: "pending",
+          recipientCredential: input.title
+        });
+        await storage.updateAccountBalance(req.user.id, (-amount).toString());
+        res.status(201).json(transaction);
+      }
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({
@@ -32,6 +71,33 @@ export async function registerRoutes(
         });
       }
       throw err;
+    }
+  });
+
+  app.post("/api/withdrawals", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const input = insertWithdrawalSchema.omit({ userId: true, status: true }).parse(req.body);
+      const accountsList = await storage.getAccounts(req.user.id);
+      const primaryAccount = accountsList[0];
+
+      if (Number(primaryAccount.balance) < Number(input.amount)) {
+        return res.status(400).json({ message: "Insufficient balance" });
+      }
+
+      const withdrawal = await storage.createWithdrawal(req.user.id, { ...input, status: "pending" });
+      await storage.updateAccountBalance(req.user.id, (-Number(input.amount)).toString());
+      await storage.createTransaction(req.user.id, {
+        title: `Withdrawal to ${input.accountName}`,
+        amount: (-Number(input.amount)).toString(),
+        type: "debit",
+        category: "withdrawal",
+        icon: "banknote",
+        status: "completed"
+      });
+      res.status(201).json(withdrawal);
+    } catch (err) {
+      res.status(400).json({ message: "Invalid withdrawal data" });
     }
   });
 
@@ -61,9 +127,7 @@ export async function registerRoutes(
     });
   });
 
-  // Seed Data for default user if needed
   await seedDatabase();
-
   return httpServer;
 }
 
@@ -73,7 +137,8 @@ async function seedDatabase() {
     const hashedPassword = await bcrypt.hash("admin123", 10);
     const user = await storage.createUser({
       username: "admin",
-      password: hashedPassword
+      password: hashedPassword,
+      email: "admin@example.com"
     });
 
     await storage.createAccount(user.id, {
@@ -81,14 +146,6 @@ async function seedDatabase() {
       balance: "12450.00",
       currency: "GBP",
       accountNumber: "**** 4582"
-    });
-    
-    await storage.createTransaction(user.id, {
-      title: "Apple Store",
-      amount: "129.00",
-      type: "debit",
-      category: "Shopping",
-      icon: "shopping-bag"
     });
   }
 }
