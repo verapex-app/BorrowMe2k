@@ -24,7 +24,7 @@ export const accounts = pgTable("accounts", {
   userId: integer("user_id").references(() => users.id).notNull(),
   type: text("type").notNull(),
   balance: numeric("balance").notNull(),
-  currency: text("currency").default("USD").notNull(),
+  currency: text("currency").default("GBP").notNull(),
   accountNumber: text("account_number").notNull(),
 });
 

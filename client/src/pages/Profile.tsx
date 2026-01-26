@@ -20,11 +20,15 @@ export default function Profile() {
 
       <div className="space-y-5">
         <Section title="General">
-          <ProfileItem icon={Settings} label="Account Settings" />
+          <Link href="/account-settings">
+            <ProfileItem icon={Settings} label="Account Settings" />
+          </Link>
           <ProfileItem icon={Bell} label="Notifications">
             <Switch defaultChecked />
           </ProfileItem>
-          <ProfileItem icon={Shield} label="Privacy & Security" />
+          <Link href="/privacy-security">
+            <ProfileItem icon={Shield} label="Privacy & Security" />
+          </Link>
         </Section>
 
         <Section title="Support">

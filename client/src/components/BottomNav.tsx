@@ -14,7 +14,7 @@ export function BottomNav() {
   ];
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-border z-50">
+    <div className="sticky bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-border z-[100]">
       <div className="flex justify-around items-center px-2 py-2 pb-3">
         {navItems.map((item) => {
           const isActive = location === item.href;

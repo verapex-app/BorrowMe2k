@@ -30,7 +30,7 @@ export default function Cards() {
             <div className="flex justify-between items-start mb-6">
               <div className="space-y-0.5">
                 <p className="opacity-70 text-xs font-medium">Current Balance</p>
-                <h2 data-testid="text-card-balance" className="text-xl font-bold tracking-tight">${Number(accounts?.[0]?.balance || 0).toLocaleString()}</h2>
+                <h2 data-testid="text-card-balance" className="text-xl font-bold tracking-tight">£{Number(accounts?.[0]?.balance || 0).toLocaleString()}</h2>
               </div>
               {/* Mastercard Logo Circles */}
               <div className="flex -space-x-2">
@@ -70,7 +70,7 @@ export default function Cards() {
         <div className="p-4 rounded-xl bg-card border border-border/50 space-y-3">
           <div className="flex justify-between items-center gap-2">
             <span className="text-sm font-medium">Monthly Limit</span>
-            <span className="text-xs font-bold text-primary">$2,000 / $5,000</span>
+            <span className="text-xs font-bold text-primary">£2,000 / £5,000</span>
           </div>
           <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
             <motion.div 

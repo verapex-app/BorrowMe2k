@@ -47,7 +47,7 @@ export default function Dashboard() {
             <Skeleton className="h-10 w-40 mx-auto" />
           ) : (
             <h1 data-testid="text-balance" className="text-3xl font-bold tracking-tight text-foreground">
-              ${Number(stats?.totalBalance || 0).toLocaleString()}
+              £{Number(stats?.totalBalance || 0).toLocaleString()}
             </h1>
           )}
           <div className="flex items-center justify-center gap-1.5 text-xs text-green-600 font-medium bg-green-500/10 w-fit mx-auto px-2.5 py-1 rounded-full">

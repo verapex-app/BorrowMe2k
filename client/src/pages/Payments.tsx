@@ -85,7 +85,7 @@ export default function Payments() {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="space-y-3">
           <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-muted-foreground">$</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-muted-foreground">£</span>
             <Input
               {...form.register("amount")}
               data-testid="input-amount"
