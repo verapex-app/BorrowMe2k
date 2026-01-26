@@ -12,9 +12,6 @@ export async function registerRoutes(
 ): Promise<Server> {
   setupAuth(app);
 
-  // Background task for expired transactions
-  setInterval(() => storage.processExpiredTransactions(), 60 * 60 * 1000); // Hourly
-
   app.get(api.transactions.list.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const transactions = await storage.getTransactions(req.user.id);
@@ -25,72 +22,17 @@ export async function registerRoutes(
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
       const input = api.transactions.create.input.parse(req.body);
-      const amount = Math.abs(Number(input.amount));
-      const account = await storage.getAccount(req.user.id);
-
-      if (!account || Number(account.balance) < amount) {
-        return res.status(400).json({ message: "Insufficient funds" });
-      }
-
-      const recipient = await storage.getUserByIdentifier(input.title); // title is identifier here
-      
-      let transaction;
-      if (recipient) {
-        // Direct transfer
-        transaction = await storage.createTransaction(req.user.id, {
-          ...input,
-          amount: (-amount).toString(),
-          recipientId: recipient.id,
-          status: 'completed'
-        });
-        await storage.updateAccountBalance(req.user.id, (-amount).toString());
-        await storage.updateAccountBalance(recipient.id, amount.toString());
-      } else {
-        // Pending transfer to unregistered user
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 5);
-        
-        transaction = await storage.createTransaction(req.user.id, {
-          ...input,
-          amount: (-amount).toString(),
-          pendingRecipientIdentifier: input.title,
-          status: 'pending',
-          expiresAt
-        });
-        await storage.updateAccountBalance(req.user.id, (-amount).toString());
-      }
-
+      const transaction = await storage.createTransaction(req.user.id, input);
       res.status(201).json(transaction);
     } catch (err) {
       if (err instanceof z.ZodError) {
-        return res.status(400).json({ message: err.errors[0].message });
+        return res.status(400).json({
+          message: err.errors[0].message,
+          field: err.errors[0].path.join('.'),
+        });
       }
-      res.status(500).json({ message: "Internal server error" });
+      throw err;
     }
-  });
-
-  app.post("/api/withdraw", async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    const { amount, sortCode, accountNumber, name } = req.body;
-    const amountNum = Math.abs(Number(amount));
-    
-    const account = await storage.getAccount(req.user.id);
-    if (!account || Number(account.balance) < amountNum) {
-      return res.status(400).json({ message: "Insufficient funds" });
-    }
-
-    const transaction = await storage.createTransaction(req.user.id, {
-      title: `Withdrawal to ${name}`,
-      amount: (-amountNum).toString(),
-      type: "withdrawal",
-      category: "transfer",
-      icon: "bank",
-      status: "withdrawn",
-      bankingInfo: JSON.stringify({ sortCode, accountNumber, name })
-    });
-
-    await storage.updateAccountBalance(req.user.id, (-amountNum).toString());
-    res.status(201).json(transaction);
   });
 
   app.get(api.accounts.list.path, async (req, res) => {
@@ -106,7 +48,7 @@ export async function registerRoutes(
     
     const totalBalance = accountsList.reduce((acc, curr) => acc + Number(curr.balance), 0);
     const monthlySpending = transactionsList
-      .filter(t => t.type === 'debit' || t.type === 'pending_send' || t.type === 'withdrawal')
+      .filter(t => t.type === 'debit')
       .reduce((acc, curr) => acc + Number(curr.amount), 0);
     const income = transactionsList
       .filter(t => t.type === 'credit')
@@ -114,12 +56,14 @@ export async function registerRoutes(
 
     res.json({
       totalBalance: totalBalance.toFixed(2),
-      monthlySpending: Math.abs(monthlySpending).toFixed(2),
+      monthlySpending: monthlySpending.toFixed(2),
       income: income.toFixed(2),
     });
   });
 
+  // Seed Data for default user if needed
   await seedDatabase();
+
   return httpServer;
 }
 
@@ -137,6 +81,14 @@ async function seedDatabase() {
       balance: "12450.00",
       currency: "GBP",
       accountNumber: "**** 4582"
+    });
+    
+    await storage.createTransaction(user.id, {
+      title: "Apple Store",
+      amount: "129.00",
+      type: "debit",
+      category: "Shopping",
+      icon: "shopping-bag"
     });
   }
 }
