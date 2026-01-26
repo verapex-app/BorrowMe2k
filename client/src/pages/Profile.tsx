@@ -1,6 +1,7 @@
 import { User, Settings, Shield, HelpCircle, LogOut, ChevronRight, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Link } from "wouter";
 
 export default function Profile() {
   return (
