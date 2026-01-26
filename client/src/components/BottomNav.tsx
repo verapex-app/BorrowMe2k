@@ -14,28 +14,31 @@ export function BottomNav() {
   ];
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-border z-50">
-      <div className="flex justify-around items-center px-2 py-2 pb-3">
+    <div className="absolute bottom-0 left-0 right-0 glass border-t border-border/30 z-50">
+      <div className="flex justify-around items-center px-2 py-1.5 pb-2">
         {navItems.map((item) => {
           const isActive = location === item.href;
           return (
             <Link key={item.href} href={item.href}>
-              <button 
+              <motion.button 
                 data-testid={`nav-${item.label.toLowerCase()}`}
-                className={`flex flex-col items-center gap-0.5 min-w-[56px] py-1 transition-colors duration-200 ${isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+                className="flex flex-col items-center gap-0.5 min-w-[60px] py-2 relative"
+                whileTap={{ scale: 0.9 }}
               >
-                <div className="relative p-1.5">
-                  <item.icon className={`w-5 h-5 ${isActive ? 'stroke-[2.5px]' : 'stroke-[1.5px]'}`} />
-                  {isActive && (
-                    <motion.div
-                      layoutId="nav-pill"
-                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-primary"
-                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    />
-                  )}
+                {isActive && (
+                  <motion.div
+                    layoutId="nav-bg"
+                    className="absolute inset-x-2 -top-1.5 h-0.5 bg-primary rounded-full"
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <div className={`p-2 rounded-2xl transition-colors duration-200 ${isActive ? 'bg-primary/10' : ''}`}>
+                  <item.icon className={`w-5 h-5 transition-colors duration-200 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
                 </div>
-                <span className="text-[10px] font-medium">{item.label}</span>
-              </button>
+                <span className={`text-[10px] font-medium transition-colors duration-200 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
+                  {item.label}
+                </span>
+              </motion.button>
             </Link>
           );
         })}
