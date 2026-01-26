@@ -2,11 +2,9 @@ import { createContext, ReactNode, useContext } from "react";
 import {
   useQuery,
   useMutation,
-  UseMutationResult,
 } from "@tanstack/react-query";
-import { insertUserSchema, type User, type InsertUser } from "@shared/schema";
+import { type User, type InsertUser } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
 
 type AuthContextType = {
   user: User | null;
@@ -20,7 +18,6 @@ type AuthContextType = {
 export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { toast } = useToast();
   const {
     data: user,
     error,
@@ -36,6 +33,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return null;
       }
     },
+    retry: false,
   });
 
   const loginMutation = useMutation({
