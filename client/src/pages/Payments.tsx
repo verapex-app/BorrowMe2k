@@ -107,15 +107,17 @@ export default function Payments() {
         <TabsContent value="transfer" className="animate-in fade-in slide-in-from-bottom-2">
           <form onSubmit={transferForm.handleSubmit(onTransfer)} className="space-y-8">
             <div className="space-y-4">
-              <div className="relative py-4">
-                <span className="absolute left-1/2 -translate-x-[110%] top-1/2 -translate-y-1/2 text-4xl font-bold text-muted-foreground/30">£</span>
+              <div className="flex flex-col items-center justify-center py-4 relative">
+              <div className="flex items-center justify-center">
+                <span className="text-4xl font-bold text-muted-foreground/30 mr-1">£</span>
                 <Input
                   {...transferForm.register("amount")}
                   type="number"
                   placeholder="0.00"
-                  className="h-20 text-5xl font-bold text-center border-none bg-transparent focus-visible:ring-0 placeholder:text-muted-foreground/20"
+                  className="h-20 text-5xl font-bold text-center border-none bg-transparent focus-visible:ring-0 placeholder:text-muted-foreground/20 w-48 px-0"
                 />
               </div>
+            </div>
               
               <div className="space-y-4">
                 <div className="space-y-1.5">
@@ -141,14 +143,16 @@ export default function Payments() {
 
         <TabsContent value="withdraw" className="animate-in fade-in slide-in-from-bottom-2">
           <form onSubmit={withdrawalForm.handleSubmit(onWithdraw)} className="space-y-6">
-            <div className="relative py-4">
-              <span className="absolute left-1/2 -translate-x-[110%] top-1/2 -translate-y-1/2 text-4xl font-bold text-muted-foreground/30">£</span>
-              <Input
-                {...withdrawalForm.register("amount")}
-                type="number"
-                placeholder="0.00"
-                className="h-20 text-5xl font-bold text-center border-none bg-transparent focus-visible:ring-0 placeholder:text-muted-foreground/20"
-              />
+            <div className="flex flex-col items-center justify-center py-4 relative">
+              <div className="flex items-center justify-center">
+                <span className="text-4xl font-bold text-muted-foreground/30 mr-1">£</span>
+                <Input
+                  {...withdrawalForm.register("amount")}
+                  type="number"
+                  placeholder="0.00"
+                  className="h-20 text-5xl font-bold text-center border-none bg-transparent focus-visible:ring-0 placeholder:text-muted-foreground/20 w-48 px-0"
+                />
+              </div>
             </div>
 
             <div className="bg-card rounded-2xl p-6 border border-border/50 space-y-5">
