@@ -1,24 +1,28 @@
 import type { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
+import { setupAuth } from "./auth";
 import { api } from "@shared/routes";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  setupAuth(app);
 
   app.get(api.transactions.list.path, async (req, res) => {
-    const transactions = await storage.getTransactions();
-    // Sort by date descending
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const transactions = await storage.getTransactions(req.user.id);
     res.json(transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
   });
 
   app.post(api.transactions.create.path, async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
       const input = api.transactions.create.input.parse(req.body);
-      const transaction = await storage.createTransaction(input);
+      const transaction = await storage.createTransaction(req.user.id, input);
       res.status(201).json(transaction);
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -32,15 +36,16 @@ export async function registerRoutes(
   });
 
   app.get(api.accounts.list.path, async (req, res) => {
-    const accounts = await storage.getAccounts();
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const accounts = await storage.getAccounts(req.user.id);
     res.json(accounts);
   });
 
   app.get(api.dashboard.getStats.path, async (req, res) => {
-    const accountsList = await storage.getAccounts();
-    const transactionsList = await storage.getTransactions();
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const accountsList = await storage.getAccounts(req.user.id);
+    const transactionsList = await storage.getTransactions(req.user.id);
     
-    // Simple calculation logic
     const totalBalance = accountsList.reduce((acc, curr) => acc + Number(curr.balance), 0);
     const monthlySpending = transactionsList
       .filter(t => t.type === 'debit')
@@ -56,58 +61,34 @@ export async function registerRoutes(
     });
   });
 
-  // Seed Data
+  // Seed Data for default user if needed
   await seedDatabase();
 
   return httpServer;
 }
 
 async function seedDatabase() {
-  const existingAccounts = await storage.getAccounts();
-  if (existingAccounts.length === 0) {
-    // Seed Accounts
-    await storage.createAccount({
+  const defaultUser = await storage.getUserByUsername("admin");
+  if (!defaultUser) {
+    const hashedPassword = await bcrypt.hash("admin123", 10);
+    const user = await storage.createUser({
+      username: "admin",
+      password: hashedPassword
+    });
+
+    await storage.createAccount(user.id, {
       type: "Main Checking",
       balance: "12450.00",
       currency: "USD",
       accountNumber: "**** 4582"
     });
     
-    // Seed Transactions
-    await storage.createTransaction({
+    await storage.createTransaction(user.id, {
       title: "Apple Store",
       amount: "129.00",
       type: "debit",
       category: "Shopping",
       icon: "shopping-bag"
-    });
-    await storage.createTransaction({
-      title: "Uber Trip",
-      amount: "24.50",
-      type: "debit",
-      category: "Transport",
-      icon: "car"
-    });
-    await storage.createTransaction({
-      title: "Salary Deposit",
-      amount: "4500.00",
-      type: "credit",
-      category: "Income",
-      icon: "dollar-sign"
-    });
-    await storage.createTransaction({
-      title: "Starbucks",
-      amount: "5.40",
-      type: "debit",
-      category: "Food",
-      icon: "coffee"
-    });
-     await storage.createTransaction({
-      title: "Netflix Subscription",
-      amount: "15.99",
-      type: "debit",
-      category: "Entertainment",
-      icon: "film"
     });
   }
 }
