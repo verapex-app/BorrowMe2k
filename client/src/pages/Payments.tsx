@@ -76,50 +76,52 @@ export default function Payments() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24 px-4 pt-6">
-      <header className="mb-8">
-        <h1 className="text-2xl font-display font-bold mb-2">Send Money</h1>
+    <div className="bg-background px-4 py-5">
+      <header className="mb-6">
+        <h1 className="text-xl font-bold mb-1">Send Money</h1>
         <p className="text-sm text-muted-foreground">Transfer funds securely to anyone.</p>
       </header>
 
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <div className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="space-y-3">
           <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-muted-foreground">$</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-muted-foreground">$</span>
             <Input
               {...form.register("amount")}
+              data-testid="input-amount"
               type="number"
               placeholder="0.00"
               step="0.01"
-              className="pl-10 h-20 text-4xl font-bold bg-transparent border-none border-b-2 border-border rounded-none focus-visible:ring-0 focus-visible:border-primary px-0 text-center placeholder:text-border"
+              className="pl-10 h-16 text-3xl font-bold bg-transparent border-none border-b-2 border-border rounded-none focus-visible:ring-0 focus-visible:border-primary px-0 text-center placeholder:text-muted-foreground/30"
               autoFocus
             />
           </div>
           {form.formState.errors.amount && (
-            <p className="text-sm text-destructive text-center">{form.formState.errors.amount.message}</p>
+            <p className="text-xs text-destructive text-center">{form.formState.errors.amount.message}</p>
           )}
         </div>
 
-        <div className="space-y-4">
-          <div className="space-y-2">
+        <div className="space-y-3">
+          <div className="space-y-1.5">
             <label className="text-sm font-medium">To (Recipient)</label>
             <Input 
               {...form.register("title")}
+              data-testid="input-recipient"
               placeholder="Name, email, or phone" 
-              className="h-14 rounded-xl bg-secondary/50 border-transparent focus:border-primary focus:bg-background"
+              className="h-12 rounded-xl bg-secondary/50 border-transparent focus:border-primary focus:bg-background"
             />
             {form.formState.errors.title && (
-              <p className="text-sm text-destructive">{form.formState.errors.title.message}</p>
+              <p className="text-xs text-destructive">{form.formState.errors.title.message}</p>
             )}
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <label className="text-sm font-medium">Category</label>
             <Select 
               onValueChange={(val) => form.setValue("category", val)} 
               defaultValue="transfer"
             >
-              <SelectTrigger className="h-14 rounded-xl bg-secondary/50 border-transparent">
+              <SelectTrigger data-testid="select-category" className="h-12 rounded-xl bg-secondary/50 border-transparent">
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent>
@@ -134,8 +136,9 @@ export default function Payments() {
 
         <Button 
           type="submit" 
+          data-testid="button-send"
           disabled={isPending}
-          className="w-full h-14 rounded-xl text-lg font-semibold shadow-lg shadow-primary/20"
+          className="w-full h-12 rounded-xl text-base font-semibold shadow-lg shadow-primary/20"
         >
           {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : (
             <>

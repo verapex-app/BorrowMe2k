@@ -4,21 +4,21 @@ import { Switch } from "@/components/ui/switch";
 
 export default function Profile() {
   return (
-    <div className="min-h-screen bg-background pb-24 px-4 pt-6">
-      <header className="flex flex-col items-center mb-8 pt-4">
-        <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-primary to-accent p-[3px] mb-4 shadow-xl shadow-primary/20">
+    <div className="bg-background px-4 py-5">
+      <header className="flex flex-col items-center mb-6 pt-2">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-primary to-accent p-[2px] mb-3 shadow-lg shadow-primary/20">
           <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
-            <User className="w-10 h-10 text-foreground" />
+            <User className="w-8 h-8 text-foreground" />
           </div>
         </div>
-        <h1 className="text-2xl font-bold font-display">Alex Morgan</h1>
-        <p className="text-muted-foreground">alex.morgan@example.com</p>
-        <div className="mt-4 px-4 py-1.5 bg-primary/10 text-primary text-xs font-bold rounded-full uppercase tracking-wider">
+        <h1 data-testid="text-username" className="text-xl font-bold">Alex Morgan</h1>
+        <p className="text-sm text-muted-foreground">alex.morgan@example.com</p>
+        <div className="mt-3 px-3 py-1 bg-primary/10 text-primary text-[10px] font-bold rounded-full uppercase tracking-wider">
           Premium Member
         </div>
       </header>
 
-      <div className="space-y-6">
+      <div className="space-y-5">
         <Section title="General">
           <ProfileItem icon={Settings} label="Account Settings" />
           <ProfileItem icon={Bell} label="Notifications">
@@ -31,7 +31,11 @@ export default function Profile() {
           <ProfileItem icon={HelpCircle} label="Help & Support" />
         </Section>
 
-        <Button variant="ghost" className="w-full h-14 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10 font-semibold justify-start px-4 gap-3">
+        <Button 
+          data-testid="button-logout"
+          variant="ghost" 
+          className="w-full h-12 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10 font-semibold justify-start px-4 gap-3"
+        >
           <LogOut className="w-5 h-5" />
           Log Out
         </Button>
@@ -42,9 +46,9 @@ export default function Profile() {
 
 function Section({ title, children }: { title: string, children: React.ReactNode }) {
   return (
-    <div className="space-y-3">
-      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-2">{title}</h3>
-      <div className="bg-card rounded-2xl border border-border/50 overflow-hidden divide-y divide-border/30 shadow-sm">
+    <div className="space-y-2">
+      <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-1">{title}</h3>
+      <div className="bg-card rounded-xl border border-border/50 overflow-hidden divide-y divide-border/30">
         {children}
       </div>
     </div>
@@ -53,10 +57,10 @@ function Section({ title, children }: { title: string, children: React.ReactNode
 
 function ProfileItem({ icon: Icon, label, children }: { icon: any, label: string, children?: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between p-4 hover:bg-secondary/30 transition-colors cursor-pointer group">
+    <div className="flex items-center justify-between p-3.5 gap-3 cursor-pointer active:bg-secondary/50 transition-colors">
       <div className="flex items-center gap-3">
-        <div className="p-2 rounded-lg bg-secondary text-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-          <Icon className="w-5 h-5" />
+        <div className="p-2 rounded-lg bg-secondary text-foreground">
+          <Icon className="w-4 h-4" />
         </div>
         <span className="font-medium text-sm">{label}</span>
       </div>

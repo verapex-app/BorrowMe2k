@@ -13,17 +13,14 @@ import NotFound from "@/pages/not-found";
 
 function Router() {
   return (
-    <div className="max-w-md mx-auto bg-background min-h-screen relative shadow-2xl overflow-hidden">
-      <Switch>
-        <Route path="/" component={Dashboard} />
-        <Route path="/cards" component={Cards} />
-        <Route path="/payments" component={Payments} />
-        <Route path="/history" component={History} />
-        <Route path="/profile" component={Profile} />
-        <Route component={NotFound} />
-      </Switch>
-      <BottomNav />
-    </div>
+    <Switch>
+      <Route path="/" component={Dashboard} />
+      <Route path="/cards" component={Cards} />
+      <Route path="/payments" component={Payments} />
+      <Route path="/history" component={History} />
+      <Route path="/profile" component={Profile} />
+      <Route component={NotFound} />
+    </Switch>
   );
 }
 
@@ -32,8 +29,13 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <div className="bg-neutral-100 min-h-screen flex justify-center sm:py-8">
-          <Router />
+        <div className="min-h-screen bg-muted/30 dark:bg-background flex justify-center">
+          <div className="w-full max-w-md bg-background min-h-screen relative shadow-2xl flex flex-col">
+            <div className="flex-1 overflow-y-auto pb-20">
+              <Router />
+            </div>
+            <BottomNav />
+          </div>
         </div>
       </TooltipProvider>
     </QueryClientProvider>

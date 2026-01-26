@@ -20,9 +20,9 @@ export default function Dashboard() {
   const { data: stats, isLoading } = useDashboardStats();
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-border/50 px-6 py-4 flex justify-between items-center">
+      <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-border/50 px-4 py-3 flex justify-between items-center gap-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-accent p-[2px]">
             <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
@@ -39,49 +39,52 @@ export default function Dashboard() {
         </Button>
       </header>
 
-      <main className="px-4 pt-6 space-y-8">
+      <main className="px-4 py-5 space-y-6">
         {/* Balance Card */}
-        <section className="text-center space-y-2 py-4">
-          <p className="text-sm text-muted-foreground font-medium">Total Balance</p>
+        <section className="text-center space-y-1.5 py-2">
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">Total Balance</p>
           {isLoading ? (
-            <Skeleton className="h-12 w-48 mx-auto" />
+            <Skeleton className="h-10 w-40 mx-auto" />
           ) : (
-            <h1 className="text-4xl font-display font-bold tracking-tight text-foreground">
+            <h1 data-testid="text-balance" className="text-3xl font-bold tracking-tight text-foreground">
               ${Number(stats?.totalBalance || 0).toLocaleString()}
             </h1>
           )}
-          <div className="flex items-center justify-center gap-2 text-sm text-green-600 font-medium bg-green-500/10 w-fit mx-auto px-3 py-1 rounded-full">
-            <ArrowDownLeft className="w-4 h-4 rotate-180" />
+          <div className="flex items-center justify-center gap-1.5 text-xs text-green-600 font-medium bg-green-500/10 w-fit mx-auto px-2.5 py-1 rounded-full">
+            <ArrowDownLeft className="w-3.5 h-3.5 rotate-180" />
             <span>+2.4% this month</span>
           </div>
         </section>
 
         {/* Quick Actions */}
-        <section className="flex justify-between gap-2 px-2">
+        <section className="grid grid-cols-4 gap-3">
           {[
-            { icon: Plus, label: "Add Money", href: "/add-funds" },
+            { icon: Plus, label: "Add", href: "/add-funds" },
             { icon: Send, label: "Send", href: "/payments" },
             { icon: ArrowDownLeft, label: "Request", href: "/request" },
             { icon: MoreHorizontal, label: "More", href: "/more" },
           ].map((action) => (
             <Link key={action.label} href={action.href}>
-              <div className="flex flex-col items-center gap-2 group cursor-pointer">
-                <div className="w-14 h-14 rounded-2xl bg-secondary flex items-center justify-center shadow-sm group-active:scale-95 transition-transform duration-200 group-hover:bg-primary group-hover:text-primary-foreground group-hover:shadow-lg group-hover:shadow-primary/25">
-                  <action.icon className="w-6 h-6" />
+              <div className="flex flex-col items-center gap-1.5 group cursor-pointer">
+                <div 
+                  data-testid={`button-${action.label.toLowerCase()}`}
+                  className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center group-active:scale-95 transition-transform duration-150"
+                >
+                  <action.icon className="w-5 h-5 text-foreground" />
                 </div>
-                <span className="text-xs font-medium text-muted-foreground group-hover:text-foreground">{action.label}</span>
+                <span className="text-[11px] font-medium text-muted-foreground">{action.label}</span>
               </div>
             </Link>
           ))}
         </section>
 
         {/* Spending Chart */}
-        <section className="h-48 w-full bg-card rounded-3xl p-4 border border-border shadow-sm">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-sm">Spending Activity</h3>
-            <span className="text-xs text-muted-foreground bg-secondary px-2 py-1 rounded-md">Weekly</span>
+        <section className="bg-card rounded-2xl p-4 border border-border/50">
+          <div className="flex justify-between items-center mb-3 gap-2">
+            <h3 className="font-semibold text-sm">Spending Activity</h3>
+            <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-0.5 rounded-md font-medium">Weekly</span>
           </div>
-          <div className="h-32 w-full">
+          <div className="h-28 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={mockChartData}>
                 <defs>
@@ -100,7 +103,7 @@ export default function Dashboard() {
                   type="monotone" 
                   dataKey="amount" 
                   stroke="hsl(var(--primary))" 
-                  strokeWidth={3}
+                  strokeWidth={2}
                   fillOpacity={1} 
                   fill="url(#colorAmount)" 
                 />
@@ -111,11 +114,11 @@ export default function Dashboard() {
 
         {/* Recent Transactions */}
         <section>
-          <div className="flex justify-between items-center mb-4 px-1">
-            <h3 className="font-bold text-lg">Recent Activity</h3>
-            <Link href="/history" className="text-primary text-sm font-semibold hover:underline">See All</Link>
+          <div className="flex justify-between items-center mb-3 gap-2">
+            <h3 className="font-semibold text-base">Recent Activity</h3>
+            <Link href="/history" className="text-primary text-xs font-semibold">See All</Link>
           </div>
-          <TransactionList limit={5} />
+          <TransactionList limit={4} />
         </section>
       </main>
     </div>

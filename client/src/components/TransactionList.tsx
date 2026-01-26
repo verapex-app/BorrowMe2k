@@ -55,7 +55,7 @@ export function TransactionList({ limit }: { limit?: number }) {
   const displayTransactions = limit ? transactions.slice(0, limit) : transactions;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {displayTransactions.map((tx) => {
         const Icon = ICONS[tx.icon] || ICONS.default;
         const isCredit = tx.type === 'credit';
@@ -63,20 +63,21 @@ export function TransactionList({ limit }: { limit?: number }) {
         return (
           <div 
             key={tx.id}
-            className="group flex items-center justify-between p-3.5 rounded-2xl bg-card hover:bg-secondary/50 transition-colors border border-transparent hover:border-border/50 active:scale-[0.99] duration-200"
+            data-testid={`transaction-${tx.id}`}
+            className="flex items-center justify-between p-3 rounded-xl bg-card border border-border/30 active:scale-[0.99] transition-transform duration-150"
           >
-            <div className="flex items-center gap-4">
-              <div className={`p-2.5 rounded-full ${isCredit ? 'bg-green-500/10 text-green-600' : 'bg-secondary text-foreground'}`}>
-                <Icon className="w-5 h-5" />
+            <div className="flex items-center gap-3 min-w-0">
+              <div className={`p-2 rounded-full shrink-0 ${isCredit ? 'bg-green-500/10 text-green-600' : 'bg-secondary text-foreground'}`}>
+                <Icon className="w-4 h-4" />
               </div>
-              <div>
-                <h4 className="font-semibold text-sm text-foreground">{tx.title}</h4>
-                <p className="text-xs text-muted-foreground">
+              <div className="min-w-0">
+                <h4 className="font-medium text-sm text-foreground truncate">{tx.title}</h4>
+                <p className="text-[11px] text-muted-foreground">
                   {format(new Date(tx.date), 'MMM d, h:mm a')}
                 </p>
               </div>
             </div>
-            <div className={`font-bold text-sm ${isCredit ? 'text-green-600' : 'text-foreground'}`}>
+            <div className={`font-semibold text-sm shrink-0 ml-2 ${isCredit ? 'text-green-600' : 'text-foreground'}`}>
               {isCredit ? '+' : '-'}${Math.abs(Number(tx.amount)).toFixed(2)}
             </div>
           </div>
