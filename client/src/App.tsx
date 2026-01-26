@@ -29,9 +29,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex justify-center">
-          <div className="w-full max-w-md bg-background min-h-screen relative shadow-2xl shadow-black/10 dark:shadow-black/50 flex flex-col border-x border-border/20">
-            <div className="flex-1 overflow-y-auto overflow-x-hidden pb-24 scrollbar-hide">
+        <div className="min-h-screen bg-muted/30 dark:bg-background flex justify-center">
+          <div className="w-full max-w-md bg-background min-h-screen relative shadow-2xl flex flex-col">
+            <div className="flex-1 overflow-y-auto pb-20">
               <Router />
             </div>
             <BottomNav />

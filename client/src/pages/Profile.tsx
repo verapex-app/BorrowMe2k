@@ -1,119 +1,70 @@
-import { User, Settings, Shield, HelpCircle, LogOut, ChevronRight, Bell, Moon, Globe, Fingerprint } from "lucide-react";
+import { User, Settings, Shield, HelpCircle, LogOut, ChevronRight, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { motion } from "framer-motion";
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.08 } }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4 } }
-};
 
 export default function Profile() {
   return (
-    <motion.div 
-      className="bg-background min-h-full px-5 py-6"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      <motion.header variants={itemVariants} className="flex flex-col items-center mb-8 pt-4">
-        <div className="relative mb-4">
-          <div className="w-24 h-24 rounded-3xl bg-gradient-to-br from-primary via-emerald-400 to-primary p-[3px] shadow-xl shadow-primary/20 animate-pulse-glow">
-            <div className="w-full h-full rounded-[21px] bg-background flex items-center justify-center">
-              <User className="w-10 h-10 text-muted-foreground" />
-            </div>
-          </div>
-          <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-emerald-500 rounded-full border-4 border-background flex items-center justify-center">
-            <div className="w-2 h-2 bg-white rounded-full" />
+    <div className="bg-background px-4 py-5">
+      <header className="flex flex-col items-center mb-6 pt-2">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-primary to-accent p-[2px] mb-3 shadow-lg shadow-primary/20">
+          <div className="w-full h-full rounded-full bg-background flex items-center justify-center">
+            <User className="w-8 h-8 text-foreground" />
           </div>
         </div>
-        <h1 data-testid="text-username" className="text-2xl font-bold">Alex Morgan</h1>
-        <p className="text-sm text-muted-foreground mb-3">alex.morgan@example.com</p>
-        <div className="px-4 py-1.5 bg-gradient-to-r from-primary/10 to-emerald-400/10 text-primary text-xs font-bold rounded-full uppercase tracking-wider border border-primary/20">
+        <h1 data-testid="text-username" className="text-xl font-bold">Alex Morgan</h1>
+        <p className="text-sm text-muted-foreground">alex.morgan@example.com</p>
+        <div className="mt-3 px-3 py-1 bg-primary/10 text-primary text-[10px] font-bold rounded-full uppercase tracking-wider">
           Premium Member
         </div>
-      </motion.header>
+      </header>
 
-      <div className="space-y-6">
-        <motion.div variants={itemVariants}>
-          <Section title="Account">
-            <ProfileItem icon={User} label="Personal Information" />
-            <ProfileItem icon={Shield} label="Security" />
-            <ProfileItem icon={Fingerprint} label="Biometrics">
-              <Switch defaultChecked />
-            </ProfileItem>
-          </Section>
-        </motion.div>
+      <div className="space-y-5">
+        <Section title="General">
+          <ProfileItem icon={Settings} label="Account Settings" />
+          <ProfileItem icon={Bell} label="Notifications">
+            <Switch defaultChecked />
+          </ProfileItem>
+          <ProfileItem icon={Shield} label="Privacy & Security" />
+        </Section>
 
-        <motion.div variants={itemVariants}>
-          <Section title="Preferences">
-            <ProfileItem icon={Bell} label="Notifications">
-              <Switch defaultChecked />
-            </ProfileItem>
-            <ProfileItem icon={Moon} label="Dark Mode">
-              <Switch />
-            </ProfileItem>
-            <ProfileItem icon={Globe} label="Language" subtitle="English (US)" />
-          </Section>
-        </motion.div>
+        <Section title="Support">
+          <ProfileItem icon={HelpCircle} label="Help & Support" />
+        </Section>
 
-        <motion.div variants={itemVariants}>
-          <Section title="Support">
-            <ProfileItem icon={HelpCircle} label="Help Center" />
-            <ProfileItem icon={Settings} label="App Settings" />
-          </Section>
-        </motion.div>
-
-        <motion.div variants={itemVariants}>
-          <Button 
-            data-testid="button-logout"
-            variant="ghost" 
-            className="w-full h-14 rounded-2xl text-destructive hover:text-destructive hover:bg-destructive/10 font-semibold justify-start px-5 gap-4"
-          >
-            <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center">
-              <LogOut className="w-5 h-5" />
-            </div>
-            Log Out
-          </Button>
-        </motion.div>
-
-        <motion.p variants={itemVariants} className="text-center text-xs text-muted-foreground pt-4">
-          NeoBank v2.1.0
-        </motion.p>
+        <Button 
+          data-testid="button-logout"
+          variant="ghost" 
+          className="w-full h-12 rounded-xl text-destructive hover:text-destructive hover:bg-destructive/10 font-semibold justify-start px-4 gap-3"
+        >
+          <LogOut className="w-5 h-5" />
+          Log Out
+        </Button>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
 function Section({ title, children }: { title: string, children: React.ReactNode }) {
   return (
     <div className="space-y-2">
-      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">{title}</h3>
-      <div className="bg-card rounded-2xl border border-border/50 overflow-hidden divide-y divide-border/30">
+      <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-1">{title}</h3>
+      <div className="bg-card rounded-xl border border-border/50 overflow-hidden divide-y divide-border/30">
         {children}
       </div>
     </div>
   );
 }
 
-function ProfileItem({ icon: Icon, label, subtitle, children }: { icon: any, label: string, subtitle?: string, children?: React.ReactNode }) {
+function ProfileItem({ icon: Icon, label, children }: { icon: any, label: string, children?: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between p-4 gap-3 cursor-pointer active:bg-secondary/50 transition-colors">
-      <div className="flex items-center gap-4">
-        <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center text-muted-foreground">
-          <Icon className="w-5 h-5" />
+    <div className="flex items-center justify-between p-3.5 gap-3 cursor-pointer active:bg-secondary/50 transition-colors">
+      <div className="flex items-center gap-3">
+        <div className="p-2 rounded-lg bg-secondary text-foreground">
+          <Icon className="w-4 h-4" />
         </div>
-        <div>
-          <span className="font-medium text-sm">{label}</span>
-          {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-        </div>
+        <span className="font-medium text-sm">{label}</span>
       </div>
-      {children || <ChevronRight className="w-5 h-5 text-muted-foreground" />}
+      {children || <ChevronRight className="w-4 h-4 text-muted-foreground" />}
     </div>
   );
 }
