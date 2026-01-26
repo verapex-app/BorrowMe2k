@@ -6,10 +6,6 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").unique().notNull(),
   password: text("password").notNull(),
-  fullName: text("full_name").notNull(),
-  email: text("email").unique().notNull(),
-  phoneNumber: text("phone_number").notNull(),
-  address: text("address").notNull(),
 });
 
 export const transactions = pgTable("transactions", {
@@ -28,16 +24,11 @@ export const accounts = pgTable("accounts", {
   userId: integer("user_id").references(() => users.id).notNull(),
   type: text("type").notNull(),
   balance: numeric("balance").notNull(),
-  currency: text("currency").default("GBP").notNull(), // Changed to GBP for UK
+  currency: text("currency").default("USD").notNull(),
   accountNumber: text("account_number").notNull(),
-  sortCode: text("sort_code").notNull(), // Added sort code for UK banking
 });
 
-export const insertUserSchema = createInsertSchema(users, {
-  email: (schema) => schema.email("Invalid email address"),
-  phoneNumber: (schema) => schema.min(10, "Phone number must be at least 10 digits"),
-}).omit({ id: true });
-
+export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export const insertTransactionSchema = createInsertSchema(transactions).omit({ id: true, date: true });
 export const insertAccountSchema = createInsertSchema(accounts).omit({ id: true });
 
