@@ -79,7 +79,7 @@ async function seedDatabase() {
     await storage.createAccount(user.id, {
       type: "Main Checking",
       balance: "12450.00",
-      currency: "USD",
+      currency: "GBP",
       accountNumber: "**** 4582"
     });
     
