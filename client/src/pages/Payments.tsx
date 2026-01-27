@@ -89,7 +89,7 @@ export default function Payments() {
 
   if (receipt) {
     return (
-      <div className="bg-background px-4 py-8 pb-24 space-y-8 animate-in fade-in duration-500">
+      <div className="bg-background px-4 py-8 pb-24 space-y-8">
         <div className="flex flex-col items-center text-center space-y-4">
           <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center">
             <CheckCircle2 className="w-8 h-8" />
@@ -100,7 +100,7 @@ export default function Payments() {
           </div>
         </div>
 
-        <Card className="border-none bg-card/50 backdrop-blur-sm shadow-sm rounded-2xl overflow-hidden">
+        <Card className="border-none bg-card/50 backdrop-blur-sm rounded-2xl overflow-hidden">
           <CardContent className="p-6 space-y-6">
             <div className="text-center py-4 space-y-1">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Amount Sent</p>
@@ -155,18 +155,18 @@ export default function Payments() {
       </header>
 
       <Tabs defaultValue="transfer" className="space-y-8">
-        <TabsList className="grid w-full grid-cols-2 h-11 bg-secondary/50 p-1 rounded-xl border border-border/20">
-          <TabsTrigger value="transfer" className="rounded-lg text-sm font-semibold data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
+        <TabsList className="grid w-full grid-cols-2 h-11 bg-secondary/50 p-1 rounded-xl">
+          <TabsTrigger value="transfer" className="rounded-lg text-sm font-semibold transition-all">
             <Send className="w-3.5 h-3.5 mr-2" />
             Send
           </TabsTrigger>
-          <TabsTrigger value="withdraw" className="rounded-lg text-sm font-semibold data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">
+          <TabsTrigger value="withdraw" className="rounded-lg text-sm font-semibold transition-all">
             <Building2 className="w-3.5 h-3.5 mr-2" />
             Withdraw
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="transfer" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <TabsContent value="transfer" className="duration-300">
           <form onSubmit={transferForm.handleSubmit(onTransfer)} className="space-y-10">
             <div className="flex flex-col items-center justify-center space-y-2 py-6">
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em]">Enter Amount</p>
@@ -187,11 +187,11 @@ export default function Payments() {
                 <Input 
                   {...transferForm.register("title")} 
                   placeholder="Email address or phone number" 
-                  className="h-12 rounded-xl bg-secondary/30 border-transparent focus:bg-background focus:border-border transition-all px-4"
+                  className="h-12 rounded-xl bg-secondary/30 border-transparent focus:bg-background focus:border-border px-4"
                 />
               </div>
 
-              <Button type="submit" className="w-full h-12 rounded-xl text-sm font-bold shadow-lg shadow-primary/20 transition-all hover:translate-y-[-1px] active:translate-y-[0px]" disabled={isPending}>
+              <Button type="submit" className="w-full h-12 rounded-xl text-sm font-bold" disabled={isPending}>
                 {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                   <span className="flex items-center gap-2">
                     Send Money <ArrowRight className="w-4 h-4" />
@@ -202,7 +202,7 @@ export default function Payments() {
           </form>
         </TabsContent>
 
-        <TabsContent value="withdraw" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <TabsContent value="withdraw" className="duration-300">
           <form onSubmit={withdrawalForm.handleSubmit(onWithdraw)} className="space-y-8">
             <div className="flex flex-col items-center justify-center space-y-2 py-4">
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em]">Withdraw Amount</p>
@@ -235,7 +235,7 @@ export default function Payments() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full h-12 rounded-xl text-sm font-bold shadow-lg shadow-primary/20 transition-all hover:translate-y-[-1px] active:translate-y-[0px]">
+              <Button type="submit" className="w-full h-12 rounded-xl text-sm font-bold">
                 <Wallet className="w-4 h-4 mr-2" />
                 Confirm Withdrawal
               </Button>
