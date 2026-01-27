@@ -40,6 +40,7 @@ export default function Payments() {
   const { toast } = useToast();
   const { mutate, isPending } = useCreateTransaction();
   const [receipt, setReceipt] = useState<any>(null);
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
 
   const transferForm = useForm<z.infer<typeof transferSchema>>({
     resolver: zodResolver(transferSchema),
@@ -70,6 +71,7 @@ export default function Payments() {
   };
 
   const onWithdraw = async (data: z.infer<typeof withdrawalSchema>) => {
+    setIsWithdrawing(true);
     try {
       const res = await apiRequest("POST", "/api/withdrawals", data);
       if (res.ok) {
@@ -92,6 +94,8 @@ export default function Payments() {
       }
     } catch (err: any) {
       toast({ title: "Withdrawal failed", description: err.message, variant: "destructive" });
+    } finally {
+      setIsWithdrawing(false);
     }
   };
 
@@ -250,9 +254,13 @@ export default function Payments() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full h-12 rounded-xl text-sm font-bold no-default-hover-elevate no-default-active-elevate">
-                <Wallet className="w-4 h-4 mr-2" />
-                Confirm Withdrawal
+              <Button type="submit" className="w-full h-12 rounded-xl text-sm font-bold no-default-hover-elevate no-default-active-elevate" disabled={isWithdrawing}>
+                {isWithdrawing ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                  <>
+                    <Wallet className="w-4 h-4 mr-2" />
+                    Confirm Withdrawal
+                  </>
+                )}
               </Button>
             </div>
           </form>
