@@ -11,6 +11,7 @@ import { z } from "zod";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
+import { motion } from "framer-motion";
 
 const transferSchema = z.object({
   title: z.string().min(2, "Phone or Email is required"),
@@ -26,6 +27,13 @@ const withdrawalSchema = z.object({
   accountNumber: z.string().min(8, "Account number must be at least 8 digits"),
   accountName: z.string().min(2, "Account name is required"),
 });
+
+const generateLongId = (prefix: string) => {
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).substring(2, 10).toUpperCase();
+  const moreRandom = Math.random().toString(36).substring(2, 10).toUpperCase();
+  return `${prefix}-${timestamp}-${random}-${moreRandom}`;
+};
 
 export default function Payments() {
   const [, setLocation] = useLocation();
@@ -48,10 +56,10 @@ export default function Payments() {
       onSuccess: (res) => {
         setReceipt({
           type: "transfer",
-          id: res.id || `TRX-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+          id: res.id ? `FT-${res.id}-${Math.random().toString(36).substring(2, 10).toUpperCase()}` : generateLongId("FT"),
           amount: data.amount,
           recipient: data.title,
-          date: new Date().toLocaleString(),
+          date: new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
           status: res.status || "completed",
         });
       },
@@ -70,12 +78,12 @@ export default function Payments() {
         queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
         setReceipt({
           type: "withdrawal",
-          id: withdrawal.id || `WDN-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+          id: withdrawal.id ? `WD-${withdrawal.id}-${Math.random().toString(36).substring(2, 10).toUpperCase()}` : generateLongId("WD"),
           amount: data.amount,
           recipient: data.accountName,
           accountNumber: data.accountNumber,
           sortCode: data.sortCode,
-          date: new Date().toLocaleString(),
+          date: new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
           status: "pending",
         });
       } else {
@@ -89,45 +97,52 @@ export default function Payments() {
 
   if (receipt) {
     return (
-      <div className="bg-background px-4 py-8 pb-24 space-y-8">
+      <div className="bg-background px-4 py-8 pb-24 space-y-8 animate-in fade-in duration-500">
         <div className="flex flex-col items-center text-center space-y-4">
-          <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center">
-            <CheckCircle2 className="w-8 h-8" />
-          </div>
+          <motion.div 
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 260, damping: 20 }}
+            className="w-20 h-20 bg-green-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-green-500/20"
+          >
+            <CheckCircle2 className="w-10 h-10" />
+          </motion.div>
           <div className="space-y-1">
             <h2 className="text-2xl font-bold tracking-tight">Success!</h2>
-            <p className="text-muted-foreground text-sm">Transfer details are saved in your history.</p>
+            <p className="text-muted-foreground text-sm">Your transfer has been processed</p>
           </div>
         </div>
 
-        <Card className="border-none bg-card/50 backdrop-blur-sm rounded-2xl overflow-hidden">
-          <CardContent className="p-6 space-y-6">
-            <div className="text-center py-4 space-y-1">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">Amount Sent</p>
+        <Card className="border border-border/50 bg-card rounded-2xl overflow-hidden shadow-sm">
+          <CardContent className="p-0">
+            <div className="bg-muted/30 p-6 text-center space-y-1">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Amount Sent</p>
               <h3 className="text-4xl font-bold tracking-tighter">£{Number(receipt.amount).toFixed(2)}</h3>
             </div>
-
-            <div className="space-y-4 pt-4 border-t border-border/50">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Recipient</span>
-                <span className="font-semibold text-foreground">{receipt.recipient}</span>
+            
+            <div className="p-6 space-y-4">
+              <div className="flex justify-between items-start text-sm">
+                <span className="text-muted-foreground">To</span>
+                <span className="font-semibold text-right max-w-[200px] break-all">{receipt.recipient}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-muted-foreground">Date</span>
-                <span className="font-medium text-foreground">{receipt.date}</span>
+                <span className="font-medium">{receipt.date}</span>
               </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Transaction ID</span>
-                <span className="font-mono text-[10px] text-muted-foreground">{receipt.id}</span>
+              <div className="pt-4 border-t border-border/50 space-y-2">
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Transaction ID</p>
+                <p className="font-mono text-[10px] text-muted-foreground break-all bg-muted/50 p-2 rounded-lg leading-relaxed">
+                  {receipt.id}
+                </p>
               </div>
             </div>
 
             {receipt.status === "pending" && (
-              <div className="bg-primary/5 p-4 rounded-xl flex gap-3 items-start border border-primary/10">
+              <div className="bg-primary/5 p-4 flex gap-3 items-start border-t border-primary/10">
                 <Clock className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                <p className="text-xs text-foreground/80 leading-relaxed font-medium">
+                <p className="text-[11px] text-foreground/80 leading-relaxed font-medium">
                   {receipt.type === "transfer" 
-                    ? "User not yet registered. Funds will be held for 5 days before returning to your balance."
+                    ? "Recipient is not registered. Funds will be held for 5 days before returning to your balance if unclaimed."
                     : "Processing withdrawal. Funds will appear in your bank account shortly."}
                 </p>
               </div>
@@ -136,10 +151,10 @@ export default function Payments() {
         </Card>
 
         <div className="grid grid-cols-2 gap-3">
-          <Button variant="outline" className="h-12 rounded-xl font-semibold gap-2">
+          <Button variant="outline" className="h-12 rounded-xl font-semibold gap-2 no-default-hover-elevate no-default-active-elevate">
             <Share2 className="w-4 h-4" /> Share
           </Button>
-          <Button onClick={() => setLocation("/")} className="h-12 rounded-xl font-bold">
+          <Button onClick={() => setLocation("/")} className="h-12 rounded-xl font-bold no-default-hover-elevate no-default-active-elevate">
             Done
           </Button>
         </div>
@@ -191,7 +206,7 @@ export default function Payments() {
                 />
               </div>
 
-              <Button type="submit" className="w-full h-12 rounded-xl text-sm font-bold" disabled={isPending}>
+              <Button type="submit" className="w-full h-12 rounded-xl text-sm font-bold no-default-hover-elevate no-default-active-elevate" disabled={isPending}>
                 {isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                   <span className="flex items-center gap-2">
                     Send Money <ArrowRight className="w-4 h-4" />
@@ -218,24 +233,24 @@ export default function Payments() {
             </div>
 
             <div className="space-y-6">
-              <div className="space-y-4 bg-card/50 p-5 rounded-2xl border border-border/50">
+              <div className="space-y-4 bg-card p-5 rounded-2xl border border-border/50">
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Account Holder</label>
-                  <Input {...withdrawalForm.register("accountName")} placeholder="Full Name" className="h-11 rounded-xl bg-background/50 border-border/50" />
+                  <Input {...withdrawalForm.register("accountName")} placeholder="Full Name" className="h-11 rounded-xl bg-background border-border/50" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Sort Code</label>
-                    <Input {...withdrawalForm.register("sortCode")} placeholder="00-00-00" className="h-11 rounded-xl bg-background/50 border-border/50 text-center font-mono" maxLength={6} />
+                    <Input {...withdrawalForm.register("sortCode")} placeholder="00-00-00" className="h-11 rounded-xl bg-background border-border/50 text-center font-mono" maxLength={6} />
                   </div>
                   <div className="space-y-2">
                     <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Account Number</label>
-                    <Input {...withdrawalForm.register("accountNumber")} placeholder="00000000" className="h-11 rounded-xl bg-background/50 border-border/50 text-center font-mono" />
+                    <Input {...withdrawalForm.register("accountNumber")} placeholder="00000000" className="h-11 rounded-xl bg-background border-border/50 text-center font-mono" />
                   </div>
                 </div>
               </div>
 
-              <Button type="submit" className="w-full h-12 rounded-xl text-sm font-bold">
+              <Button type="submit" className="w-full h-12 rounded-xl text-sm font-bold no-default-hover-elevate no-default-active-elevate">
                 <Wallet className="w-4 h-4 mr-2" />
                 Confirm Withdrawal
               </Button>
