@@ -3,7 +3,7 @@ import { CreditCard, Lock, Settings, Eye, Copy, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
-import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from "framer-motion";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 
 export default function Cards() {
   const { data: accounts, isLoading } = useAccounts();
@@ -20,7 +20,7 @@ export default function Cards() {
   const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-17.5deg", "17.5deg"]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (isFlipped) return; // Disable tilt when flipped for clarity
+    if (isFlipped) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const width = rect.width;
     const height = rect.height;
@@ -65,8 +65,7 @@ export default function Cards() {
               transition={{ 
                 type: "spring", 
                 stiffness: 260, 
-                damping: 20,
-                rotateY: { duration: 0.6 }
+                damping: 20
               }}
               onMouseMove={handleMouseMove}
               onMouseLeave={handleMouseLeave}
@@ -74,7 +73,7 @@ export default function Cards() {
             >
               {/* Front Side */}
               <div 
-                className="absolute inset-0 w-full h-full rounded-2xl bg-gradient-to-br from-[#1a1a1a] via-[#333333] to-[#000000] p-6 text-white shadow-2xl overflow-hidden border border-white/10"
+                className="absolute inset-0 w-full h-full rounded-2xl bg-gradient-to-br from-[#1a1a1a] via-[#333333] to-[#000000] p-6 text-white shadow-2xl border border-white/10"
                 style={{ backfaceVisibility: "hidden" }}
               >
                 {/* Glossy Effect */}
@@ -112,7 +111,7 @@ export default function Cards() {
 
               {/* Back Side */}
               <div 
-                className="absolute inset-0 w-full h-full rounded-2xl bg-[#1a1a1a] text-white shadow-2xl overflow-hidden border border-white/10"
+                className="absolute inset-0 w-full h-full rounded-2xl bg-[#1a1a1a] text-white shadow-2xl border border-white/10"
                 style={{ 
                   backfaceVisibility: "hidden",
                   transform: "rotateY(180deg)"
