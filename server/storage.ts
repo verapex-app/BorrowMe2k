@@ -1,9 +1,19 @@
-import { users, transactions, accounts, withdrawals, type User, type InsertUser, type Transaction, type InsertTransaction, type Account, type InsertAccount, type Withdrawal, type InsertWithdrawal } from "@shared/schema";
-import { db } from "./db";
-import { eq, and, or, sql } from "drizzle-orm";
+import {
+  users,
+  loanProducts,
+  loans,
+  repayments,
+  type User,
+  type InsertUser,
+  type LoanProduct,
+  type InsertLoanProduct,
+  type Loan,
+  type Repayment,
+} from "@shared/schema";
+import { db, pool } from "./db";
+import { eq, and, desc, asc } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
-import { pool } from "./db";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -13,17 +23,20 @@ export interface IStorage {
   getUserByCredential(credential: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
 
-  getTransactions(userId: number): Promise<Transaction[]>;
-  createTransaction(userId: number, transaction: Omit<InsertTransaction, "userId">): Promise<Transaction>;
-  
-  getAccounts(userId: number): Promise<Account[]>;
-  createAccount(userId: number, account: Omit<InsertAccount, "userId">): Promise<Account>;
-  updateAccountBalance(userId: number, amount: string): Promise<void>;
+  listLoanProducts(): Promise<LoanProduct[]>;
+  getLoanProduct(id: number): Promise<LoanProduct | undefined>;
+  createLoanProduct(product: InsertLoanProduct): Promise<LoanProduct>;
 
-  createWithdrawal(userId: number, withdrawal: Omit<InsertWithdrawal, "userId">): Promise<Withdrawal>;
-  
-  claimPendingTransfers(user: User): Promise<void>;
-  processExpiredTransfers(): Promise<void>;
+  listLoans(userId: number): Promise<Loan[]>;
+  getLoan(id: number): Promise<Loan | undefined>;
+  createLoan(loan: Omit<Loan, "id" | "appliedAt">): Promise<Loan>;
+  updateLoan(id: number, patch: Partial<Loan>): Promise<Loan>;
+
+  listRepayments(userId: number): Promise<Repayment[]>;
+  listRepaymentsByLoan(loanId: number): Promise<Repayment[]>;
+  createRepayment(
+    repayment: Omit<Repayment, "id" | "paidAt">,
+  ): Promise<Repayment>;
 
   sessionStore: session.Store;
 }
@@ -44,19 +57,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.username, username));
     return user;
   }
 
   async getUserByCredential(credential: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(
-      or(
-        eq(users.username, credential),
-        eq(users.email, credential),
-        eq(users.phone, credential)
-      )
-    );
-    return user;
+    const byUsername = await this.getUserByUsername(credential);
+    if (byUsername) return byUsername;
+    const [byEmail] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, credential));
+    if (byEmail) return byEmail;
+    const [byPhone] = await db
+      .select()
+      .from(users)
+      .where(eq(users.phone, credential));
+    return byPhone;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
@@ -64,99 +84,84 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getTransactions(userId: number): Promise<Transaction[]> {
-    return await db.select().from(transactions).where(eq(transactions.userId, userId)).orderBy(transactions.date);
+  async listLoanProducts(): Promise<LoanProduct[]> {
+    return await db
+      .select()
+      .from(loanProducts)
+      .orderBy(asc(loanProducts.id));
   }
 
-  async createTransaction(userId: number, insertTransaction: Omit<InsertTransaction, "userId">): Promise<Transaction> {
-    const [transaction] = await db
-      .insert(transactions)
-      .values({ ...insertTransaction, userId })
+  async getLoanProduct(id: number): Promise<LoanProduct | undefined> {
+    const [product] = await db
+      .select()
+      .from(loanProducts)
+      .where(eq(loanProducts.id, id));
+    return product;
+  }
+
+  async createLoanProduct(
+    product: InsertLoanProduct,
+  ): Promise<LoanProduct> {
+    const [created] = await db
+      .insert(loanProducts)
+      .values(product)
       .returning();
-    return transaction;
+    return created;
   }
 
-  async getAccounts(userId: number): Promise<Account[]> {
-    return await db.select().from(accounts).where(eq(accounts.userId, userId));
+  async listLoans(userId: number): Promise<Loan[]> {
+    return await db
+      .select()
+      .from(loans)
+      .where(eq(loans.userId, userId))
+      .orderBy(desc(loans.appliedAt));
   }
 
-  async createAccount(userId: number, insertAccount: Omit<InsertAccount, "userId">): Promise<Account> {
-    const [account] = await db
-      .insert(accounts)
-      .values({ ...insertAccount, userId })
+  async getLoan(id: number): Promise<Loan | undefined> {
+    const [loan] = await db.select().from(loans).where(eq(loans.id, id));
+    return loan;
+  }
+
+  async createLoan(
+    loan: Omit<Loan, "id" | "appliedAt">,
+  ): Promise<Loan> {
+    const [created] = await db.insert(loans).values(loan).returning();
+    return created;
+  }
+
+  async updateLoan(id: number, patch: Partial<Loan>): Promise<Loan> {
+    const [updated] = await db
+      .update(loans)
+      .set(patch)
+      .where(eq(loans.id, id))
       .returning();
-    return account;
+    return updated;
   }
 
-  async updateAccountBalance(userId: number, amount: string): Promise<void> {
-    await db.update(accounts)
-      .set({ balance: sql`${accounts.balance} + ${amount}` })
-      .where(eq(accounts.userId, userId));
+  async listRepayments(userId: number): Promise<Repayment[]> {
+    return await db
+      .select()
+      .from(repayments)
+      .where(eq(repayments.userId, userId))
+      .orderBy(desc(repayments.paidAt));
   }
 
-  async createWithdrawal(userId: number, insertWithdrawal: Omit<InsertWithdrawal, "userId">): Promise<Withdrawal> {
-    const [withdrawal] = await db
-      .insert(withdrawals)
-      .values({ ...insertWithdrawal, userId })
+  async listRepaymentsByLoan(loanId: number): Promise<Repayment[]> {
+    return await db
+      .select()
+      .from(repayments)
+      .where(eq(repayments.loanId, loanId))
+      .orderBy(desc(repayments.paidAt));
+  }
+
+  async createRepayment(
+    repayment: Omit<Repayment, "id" | "paidAt">,
+  ): Promise<Repayment> {
+    const [created] = await db
+      .insert(repayments)
+      .values(repayment)
       .returning();
-    return withdrawal;
-  }
-
-  async claimPendingTransfers(user: User): Promise<void> {
-    const pending = await db.select().from(transactions).where(
-      and(
-        eq(transactions.status, "pending"),
-        or(
-          eq(transactions.recipientCredential, user.username),
-          user.email ? eq(transactions.recipientCredential, user.email) : undefined,
-          user.phone ? eq(transactions.recipientCredential, user.phone) : undefined
-        )
-      )
-    );
-
-    for (const t of pending) {
-      await db.transaction(async (tx) => {
-        await tx.update(transactions).set({ status: "completed" }).where(eq(transactions.id, t.id));
-        await tx.insert(transactions).values({
-          userId: user.id,
-          title: `Received from User ${t.userId}`,
-          amount: Math.abs(Number(t.amount)).toString(),
-          type: "credit",
-          category: "transfer",
-          icon: "arrow-down-left",
-          status: "completed"
-        });
-        await tx.update(accounts).set({ balance: sql`${accounts.balance} + ${Math.abs(Number(t.amount)).toString()}` }).where(eq(accounts.userId, user.id));
-      });
-    }
-  }
-
-  async processExpiredTransfers(): Promise<void> {
-    const fiveDaysAgo = new Date();
-    fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
-
-    const expired = await db.select().from(transactions).where(
-      and(
-        eq(transactions.status, "pending"),
-        sql`${transactions.date} < ${fiveDaysAgo}`
-      )
-    );
-
-    for (const t of expired) {
-      await db.transaction(async (tx) => {
-        await tx.update(transactions).set({ status: "refunded" }).where(eq(transactions.id, t.id));
-        await tx.insert(transactions).values({
-          userId: t.userId,
-          title: `Refund: Expired Transfer to ${t.recipientCredential}`,
-          amount: Math.abs(Number(t.amount)).toString(),
-          type: "credit",
-          category: "transfer",
-          icon: "rotate-ccw",
-          status: "completed"
-        });
-        await tx.update(accounts).set({ balance: sql`${accounts.balance} + ${Math.abs(Number(t.amount)).toString()}` }).where(eq(accounts.userId, t.userId));
-      });
-    }
+    return created;
   }
 }
 

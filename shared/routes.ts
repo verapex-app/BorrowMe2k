@@ -1,70 +1,77 @@
-import { z } from 'zod';
-import { insertTransactionSchema, insertAccountSchema, transactions, accounts } from './schema';
+import { z } from "zod";
+import {
+  applyLoanSchema,
+  repaymentSchema,
+  loanProducts,
+  loans,
+  repayments,
+} from "./schema";
 
 export const errorSchemas = {
   validation: z.object({
     message: z.string(),
     field: z.string().optional(),
   }),
-  notFound: z.object({
-    message: z.string(),
-  }),
-  internal: z.object({
-    message: z.string(),
-  }),
+  notFound: z.object({ message: z.string() }),
+  internal: z.object({ message: z.string() }),
 };
 
 export const api = {
   dashboard: {
     getStats: {
-      method: 'GET' as const,
-      path: '/api/dashboard/stats',
+      method: "GET" as const,
+      path: "/api/dashboard/stats",
       responses: {
         200: z.object({
-          totalBalance: z.string(),
-          monthlySpending: z.string(),
-          income: z.string(),
+          activeLoans: z.number(),
+          outstandingBalance: z.string(),
+          totalBorrowed: z.string(),
+          totalRepaid: z.string(),
+          nextPaymentAmount: z.string().nullable(),
+          nextPaymentDate: z.string().nullable(),
         }),
       },
     },
   },
-  transactions: {
+  loanProducts: {
     list: {
-      method: 'GET' as const,
-      path: '/api/transactions',
+      method: "GET" as const,
+      path: "/api/loan-products",
       responses: {
-        200: z.array(z.custom<typeof transactions.$inferSelect>()),
+        200: z.array(z.custom<typeof loanProducts.$inferSelect>()),
       },
     },
-    create: {
-      method: 'POST' as const,
-      path: '/api/transactions',
-      input: insertTransactionSchema.omit({ userId: true }),
+  },
+  loans: {
+    list: {
+      method: "GET" as const,
+      path: "/api/loans",
+      responses: { 200: z.array(z.custom<typeof loans.$inferSelect>()) },
+    },
+    apply: {
+      method: "POST" as const,
+      path: "/api/loans",
+      input: applyLoanSchema,
       responses: {
-        201: z.custom<typeof transactions.$inferSelect>(),
+        201: z.custom<typeof loans.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    repay: {
+      method: "POST" as const,
+      path: "/api/loans/:id/repay",
+      input: repaymentSchema,
+      responses: {
+        201: z.custom<typeof repayments.$inferSelect>(),
         400: errorSchemas.validation,
       },
     },
   },
-  accounts: {
+  repayments: {
     list: {
-      method: 'GET' as const,
-      path: '/api/accounts',
-      responses: {
-        200: z.array(z.custom<typeof accounts.$inferSelect>()),
-      },
+      method: "GET" as const,
+      path: "/api/repayments",
+      responses: { 200: z.array(z.custom<typeof repayments.$inferSelect>()) },
     },
   },
 };
-
-export function buildUrl(path: string, params?: Record<string, string | number>): string {
-  let url = path;
-  if (params) {
-    Object.entries(params).forEach(([key, value]) => {
-      if (url.includes(`:${key}`)) {
-        url = url.replace(`:${key}`, String(value));
-      }
-    });
-  }
-  return url;
-}

@@ -5,125 +5,197 @@ import { setupAuth } from "./auth";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
-import { insertWithdrawalSchema } from "@shared/schema";
+
+function calcMonthlyPayment(
+  principal: number,
+  monthlyRatePct: number,
+  termMonths: number,
+): number {
+  // Simple interest amortization (common for short-term microloans):
+  // total = principal * (1 + rate * months); monthly = total / months
+  const total = principal * (1 + (monthlyRatePct / 100) * termMonths);
+  return total / termMonths;
+}
 
 export async function registerRoutes(
   httpServer: Server,
-  app: Express
+  app: Express,
 ): Promise<Server> {
   setupAuth(app);
 
-  app.get(api.transactions.list.path, async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    const transactions = await storage.getTransactions(req.user.id);
-    res.json(transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+  app.get(api.loanProducts.list.path, async (_req, res) => {
+    const products = await storage.listLoanProducts();
+    res.json(products);
   });
 
-  app.post(api.transactions.create.path, async (req, res) => {
+  app.get(api.loans.list.path, async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const list = await storage.listLoans(req.user.id);
+    res.json(list);
+  });
+
+  app.post(api.loans.apply.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const input = api.transactions.create.input.parse(req.body);
-      const accountsList = await storage.getAccounts(req.user.id);
-      const primaryAccount = accountsList[0];
-      
-      const amount = Math.abs(Number(input.amount));
-      if (Number(primaryAccount.balance) < amount) {
-        return res.status(400).json({ message: "Insufficient balance" });
+      const input = api.loans.apply.input.parse(req.body);
+      const product = await storage.getLoanProduct(input.productId);
+      if (!product) {
+        return res.status(400).json({ message: "Loan product not found" });
       }
 
-      // Check if recipient exists
-      const recipient = await storage.getUserByCredential(input.title);
-      
-      if (recipient) {
-        // Direct transfer
-        await storage.createTransaction(req.user.id, {
-          ...input,
-          amount: (-amount).toString(),
-          status: "completed"
+      const principal = Number(input.principal);
+      const min = Number(product.minAmount);
+      const max = Number(product.maxAmount);
+      if (principal < min || principal > max) {
+        return res.status(400).json({
+          message: `Amount must be between ${min.toLocaleString()} and ${max.toLocaleString()} FCFA`,
+          field: "principal",
         });
-        await storage.createTransaction(recipient.id, {
-          title: `From ${req.user.username}`,
-          amount: amount.toString(),
-          type: "credit",
-          category: input.category,
-          icon: "arrow-down-left",
-          status: "completed"
-        });
-        await storage.updateAccountBalance(req.user.id, (-amount).toString());
-        await storage.updateAccountBalance(recipient.id, amount.toString());
-        res.status(201).json({ message: "Transfer successful" });
-      } else {
-        // Pending transfer to email/phone
-        const transaction = await storage.createTransaction(req.user.id, {
-          ...input,
-          amount: (-amount).toString(),
-          status: "pending",
-          recipientCredential: input.title
-        });
-        await storage.updateAccountBalance(req.user.id, (-amount).toString());
-        res.status(201).json(transaction);
       }
+      if (
+        input.termMonths < product.minTermMonths ||
+        input.termMonths > product.maxTermMonths
+      ) {
+        return res.status(400).json({
+          message: `Term must be between ${product.minTermMonths} and ${product.maxTermMonths} months`,
+          field: "termMonths",
+        });
+      }
+
+      const rate = Number(product.interestRate);
+      const monthly = calcMonthlyPayment(principal, rate, input.termMonths);
+      const total = monthly * input.termMonths;
+      const dueDate = new Date();
+      dueDate.setMonth(dueDate.getMonth() + input.termMonths);
+
+      // Auto-approve so the user immediately sees their loan and schedule.
+      const loan = await storage.createLoan({
+        userId: req.user.id,
+        productId: product.id,
+        productName: product.name,
+        principal: principal.toFixed(2),
+        interestRate: rate.toFixed(2),
+        termMonths: input.termMonths,
+        monthlyPayment: monthly.toFixed(2),
+        totalRepayment: total.toFixed(2),
+        amountPaid: "0",
+        purpose: input.purpose,
+        status: "active",
+        approvedAt: new Date(),
+        dueDate,
+      });
+
+      res.status(201).json(loan);
     } catch (err) {
       if (err instanceof z.ZodError) {
         return res.status(400).json({
           message: err.errors[0].message,
-          field: err.errors[0].path.join('.'),
+          field: err.errors[0].path.join("."),
         });
       }
       throw err;
     }
   });
 
-  app.post("/api/withdrawals", async (req, res) => {
+  app.post("/api/loans/:id/repay", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
+    const loanId = Number(req.params.id);
+    if (Number.isNaN(loanId)) {
+      return res.status(400).json({ message: "Invalid loan id" });
+    }
     try {
-      const input = insertWithdrawalSchema.omit({ userId: true, status: true }).parse(req.body);
-      const accountsList = await storage.getAccounts(req.user.id);
-      const primaryAccount = accountsList[0];
-
-      if (Number(primaryAccount.balance) < Number(input.amount)) {
-        return res.status(400).json({ message: "Insufficient balance" });
+      const input = api.loans.repay.input.parse(req.body);
+      const loan = await storage.getLoan(loanId);
+      if (!loan || loan.userId !== req.user.id) {
+        return res.status(404).json({ message: "Loan not found" });
+      }
+      if (loan.status !== "active") {
+        return res
+          .status(400)
+          .json({ message: "Loan is not active and cannot be repaid" });
       }
 
-      const withdrawal = await storage.createWithdrawal(req.user.id, { ...input, status: "pending" });
-      await storage.updateAccountBalance(req.user.id, (-Number(input.amount)).toString());
-      await storage.createTransaction(req.user.id, {
-        title: `Withdrawal to ${input.accountName}`,
-        amount: (-Number(input.amount)).toString(),
-        type: "debit",
-        category: "withdrawal",
-        icon: "banknote",
-        status: "completed"
+      const outstanding =
+        Number(loan.totalRepayment) - Number(loan.amountPaid);
+      const amount = Math.min(Number(input.amount), outstanding);
+      if (amount <= 0) {
+        return res.status(400).json({ message: "Nothing left to repay" });
+      }
+
+      const repayment = await storage.createRepayment({
+        loanId: loan.id,
+        userId: req.user.id,
+        amount: amount.toFixed(2),
+        method: input.method,
       });
-      res.status(201).json(withdrawal);
+
+      const newPaid = Number(loan.amountPaid) + amount;
+      const status =
+        newPaid >= Number(loan.totalRepayment) - 0.01 ? "repaid" : "active";
+      await storage.updateLoan(loan.id, {
+        amountPaid: newPaid.toFixed(2),
+        status,
+      });
+
+      res.status(201).json(repayment);
     } catch (err) {
-      res.status(400).json({ message: "Invalid withdrawal data" });
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({
+          message: err.errors[0].message,
+          field: err.errors[0].path.join("."),
+        });
+      }
+      throw err;
     }
   });
 
-  app.get(api.accounts.list.path, async (req, res) => {
+  app.get(api.repayments.list.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const accounts = await storage.getAccounts(req.user.id);
-    res.json(accounts);
+    const list = await storage.listRepayments(req.user.id);
+    res.json(list);
   });
 
   app.get(api.dashboard.getStats.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const accountsList = await storage.getAccounts(req.user.id);
-    const transactionsList = await storage.getTransactions(req.user.id);
-    
-    const totalBalance = accountsList.reduce((acc, curr) => acc + Number(curr.balance), 0);
-    const monthlySpending = transactionsList
-      .filter(t => t.type === 'debit')
-      .reduce((acc, curr) => acc + Number(curr.amount), 0);
-    const income = transactionsList
-      .filter(t => t.type === 'credit')
-      .reduce((acc, curr) => acc + Number(curr.amount), 0);
+    const userLoans = await storage.listLoans(req.user.id);
+
+    const activeLoans = userLoans.filter((l) => l.status === "active");
+    const outstandingBalance = activeLoans.reduce(
+      (acc, l) =>
+        acc + (Number(l.totalRepayment) - Number(l.amountPaid)),
+      0,
+    );
+    const totalBorrowed = userLoans.reduce(
+      (acc, l) => acc + Number(l.principal),
+      0,
+    );
+    const totalRepaid = userLoans.reduce(
+      (acc, l) => acc + Number(l.amountPaid),
+      0,
+    );
+
+    let nextPaymentAmount: string | null = null;
+    let nextPaymentDate: string | null = null;
+    if (activeLoans.length > 0) {
+      const next = activeLoans
+        .slice()
+        .sort(
+          (a, b) =>
+            new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime(),
+        )[0];
+      nextPaymentAmount = Number(next.monthlyPayment).toFixed(2);
+      const due = new Date();
+      due.setDate(due.getDate() + 30);
+      nextPaymentDate = due.toISOString();
+    }
 
     res.json({
-      totalBalance: totalBalance.toFixed(2),
-      monthlySpending: monthlySpending.toFixed(2),
-      income: income.toFixed(2),
+      activeLoans: activeLoans.length,
+      outstandingBalance: outstandingBalance.toFixed(2),
+      totalBorrowed: totalBorrowed.toFixed(2),
+      totalRepaid: totalRepaid.toFixed(2),
+      nextPaymentAmount,
+      nextPaymentDate,
     });
   });
 
@@ -132,20 +204,103 @@ export async function registerRoutes(
 }
 
 async function seedDatabase() {
-  const defaultUser = await storage.getUserByUsername("admin");
-  if (!defaultUser) {
-    const hashedPassword = await bcrypt.hash("admin123", 10);
-    const user = await storage.createUser({
-      username: "admin",
-      password: hashedPassword,
-      email: "admin@example.com"
-    });
+  const existing = await storage.listLoanProducts();
+  if (existing.length === 0) {
+    const products = [
+      {
+        name: "Quick Cash",
+        description:
+          "Fast emergency loan, disbursed instantly via Mobile Money.",
+        category: "personal",
+        icon: "zap",
+        minAmount: "10000",
+        maxAmount: "150000",
+        interestRate: "5.0",
+        minTermMonths: 1,
+        maxTermMonths: 3,
+        processingFeePct: "1.5",
+      },
+      {
+        name: "Salary Advance",
+        description:
+          "Borrow against your monthly salary, repay on payday.",
+        category: "personal",
+        icon: "wallet",
+        minAmount: "25000",
+        maxAmount: "500000",
+        interestRate: "3.5",
+        minTermMonths: 1,
+        maxTermMonths: 6,
+        processingFeePct: "1.0",
+      },
+      {
+        name: "Business Boost",
+        description:
+          "Working capital for small traders and SMEs in Cameroon.",
+        category: "business",
+        icon: "store",
+        minAmount: "100000",
+        maxAmount: "2000000",
+        interestRate: "4.0",
+        minTermMonths: 3,
+        maxTermMonths: 18,
+        processingFeePct: "2.0",
+      },
+      {
+        name: "School Fees",
+        description:
+          "Cover tuition for primary, secondary, or university.",
+        category: "education",
+        icon: "graduation-cap",
+        minAmount: "50000",
+        maxAmount: "1000000",
+        interestRate: "2.5",
+        minTermMonths: 3,
+        maxTermMonths: 12,
+        processingFeePct: "1.0",
+      },
+      {
+        name: "Agriculture Loan",
+        description:
+          "For farmers needing seeds, fertilizer, or equipment.",
+        category: "agriculture",
+        icon: "sprout",
+        minAmount: "75000",
+        maxAmount: "1500000",
+        interestRate: "3.0",
+        minTermMonths: 6,
+        maxTermMonths: 24,
+        processingFeePct: "1.5",
+      },
+      {
+        name: "Moto / Vehicle",
+        description:
+          "Finance a moto-taxi, used car, or commercial vehicle.",
+        category: "transport",
+        icon: "bike",
+        minAmount: "200000",
+        maxAmount: "3000000",
+        interestRate: "3.5",
+        minTermMonths: 6,
+        maxTermMonths: 24,
+        processingFeePct: "2.0",
+      },
+    ];
+    for (const p of products) {
+      await storage.createLoanProduct(p);
+    }
+  }
 
-    await storage.createAccount(user.id, {
-      type: "Main Checking",
-      balance: "12450.00",
-      currency: "GBP",
-      accountNumber: "**** 4582"
+  const defaultUser = await storage.getUserByUsername("demo");
+  if (!defaultUser) {
+    const hashedPassword = await bcrypt.hash("demo1234", 10);
+    await storage.createUser({
+      username: "demo",
+      password: hashedPassword,
+      fullName: "Awa Tabe",
+      email: "demo@borrowme.cm",
+      phone: "+237670000000",
+      city: "Douala",
     });
   }
 }

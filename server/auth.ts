@@ -14,7 +14,7 @@ declare global {
 
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || "banking-app-secret",
+    secret: process.env.SESSION_SECRET || "borrowme-app-secret",
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
