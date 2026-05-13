@@ -5,6 +5,7 @@ import session from "express-session";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
+import { sendOtpEmail, verifyOtp } from "./otp";
 
 declare global {
   namespace Express {
@@ -54,6 +55,34 @@ export function setupAuth(app: Express) {
     } catch (err) {
       done(err);
     }
+  });
+
+  app.post("/api/send-otp", async (req, res) => {
+    const { email } = req.body;
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({ message: "Email is required" });
+    }
+    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+      return res.status(503).json({ message: "Email service is not configured" });
+    }
+    try {
+      await sendOtpEmail(email);
+      res.json({ message: "OTP sent" });
+    } catch (err: any) {
+      res.status(500).json({ message: "Failed to send OTP email. Check your email address." });
+    }
+  });
+
+  app.post("/api/verify-otp", (req, res) => {
+    const { email, code } = req.body;
+    if (!email || !code) {
+      return res.status(400).json({ message: "Email and code are required" });
+    }
+    const valid = verifyOtp(email, code);
+    if (!valid) {
+      return res.status(400).json({ message: "Invalid or expired code" });
+    }
+    res.json({ message: "Email verified" });
   });
 
   app.post("/api/register", async (req, res, next) => {
