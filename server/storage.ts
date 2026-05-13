@@ -82,17 +82,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByCredential(credential: string): Promise<User | undefined> {
-    const byUsername = await this.getUserByUsername(credential);
+    const trimmed = credential.trim();
+
+    const byUsername = await this.getUserByUsername(trimmed);
     if (byUsername) return byUsername;
+
     const [byEmail] = await db
       .select()
       .from(users)
-      .where(eq(users.email, credential));
+      .where(eq(users.email, trimmed.toLowerCase()));
     if (byEmail) return byEmail;
+
+    const phoneNorm = trimmed.replace(/\s+/g, "");
     const [byPhone] = await db
       .select()
       .from(users)
-      .where(eq(users.phone, credential));
+      .where(eq(users.phone, phoneNorm));
     return byPhone;
   }
 

@@ -107,7 +107,8 @@ export function setupAuth(app: Express) {
       const hashedPassword = await bcrypt.hash(req.body.password, 10);
       const user = await storage.createUser({
         ...req.body,
-        email: req.body.email ? req.body.email.toLowerCase() : req.body.email,
+        email: req.body.email ? req.body.email.trim().toLowerCase() : req.body.email,
+        phone: req.body.phone ? req.body.phone.trim().replace(/\s+/g, "") : req.body.phone,
         password: hashedPassword,
       });
 
