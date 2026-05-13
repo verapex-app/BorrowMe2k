@@ -107,6 +107,8 @@ function LoginForm({
   onSubmit: (data: InsertUser) => Promise<any>;
 }) {
   const { toast } = useToast();
+  const [showForgot, setShowForgot] = useState(false);
+
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: { username: "", password: "" },
@@ -124,6 +126,10 @@ function LoginForm({
       });
     }
   };
+
+  if (showForgot) {
+    return <ForgotPasswordForm onBack={() => setShowForgot(false)} />;
+  }
 
   return (
     <Form {...form}>
@@ -146,7 +152,16 @@ function LoginForm({
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Password</FormLabel>
+              <div className="flex items-center justify-between">
+                <FormLabel>Password</FormLabel>
+                <button
+                  type="button"
+                  className="text-xs text-primary underline"
+                  onClick={() => setShowForgot(true)}
+                >
+                  Forgot password?
+                </button>
+              </div>
               <FormControl>
                 <Input type="password" placeholder="Enter password" {...field} />
               </FormControl>
@@ -163,6 +178,94 @@ function LoginForm({
         </Button>
       </form>
     </Form>
+  );
+}
+
+const forgotSchema = z.object({
+  email: z.string().email("Enter a valid email address"),
+});
+
+function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
+  const { toast } = useToast();
+  const [sent, setSent] = useState(false);
+
+  const form = useForm<z.infer<typeof forgotSchema>>({
+    resolver: zodResolver(forgotSchema),
+    defaultValues: { email: "" },
+  });
+
+  const handleSubmit = async (data: z.infer<typeof forgotSchema>) => {
+    const res = await fetch("/api/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: data.email }),
+    });
+    let json: any = null;
+    try { json = await res.json(); } catch {}
+    if (!res.ok) {
+      toast({
+        variant: "destructive",
+        title: "Could not send reset link",
+        description: json?.message ?? `Error ${res.status}`,
+      });
+      return;
+    }
+    setSent(true);
+  };
+
+  if (sent) {
+    return (
+      <div className="space-y-4 text-center py-2">
+        <CheckCircle2 className="w-10 h-10 text-green-500 mx-auto" />
+        <p className="text-sm font-semibold">Check your inbox</p>
+        <p className="text-xs text-muted-foreground">
+          A password reset link has been sent. It expires in 1 hour.
+        </p>
+        <Button variant="outline" className="w-full" onClick={onBack}>
+          Back to login
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <p className="text-sm font-semibold">Reset your password</p>
+        <p className="text-xs text-muted-foreground mt-1">
+          Enter the email on your account and we'll send you a reset link.
+        </p>
+      </div>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email address</FormLabel>
+                <FormControl>
+                  <Input type="email" placeholder="you@example.com" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" className="flex-1" onClick={onBack}>
+              <ArrowLeft className="w-4 h-4 mr-1" /> Back
+            </Button>
+            <Button type="submit" className="flex-1" disabled={form.formState.isSubmitting}>
+              {form.formState.isSubmitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                "Send reset link"
+              )}
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </div>
   );
 }
 

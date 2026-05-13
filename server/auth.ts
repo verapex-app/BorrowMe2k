@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema";
 import { sendOtpEmail, verifyOtp } from "./otp";
+import { createResetToken, consumeResetToken, sendResetEmail } from "./reset";
 
 declare global {
   namespace Express {
@@ -105,6 +106,44 @@ export function setupAuth(app: Express) {
     } catch (err) {
       next(err);
     }
+  });
+
+  app.post("/api/forgot-password", async (req, res) => {
+    const { email } = req.body;
+    if (!email || typeof email !== "string") {
+      return res.status(400).json({ message: "Email is required" });
+    }
+    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+      return res.status(503).json({ message: "Email service is not configured" });
+    }
+    const user = await storage.getUserByEmail(email.toLowerCase());
+    if (!user) {
+      return res.status(404).json({ message: "No account found with this email address" });
+    }
+    try {
+      const token = createResetToken(user.id);
+      const proto = req.headers["x-forwarded-proto"] ?? req.protocol;
+      const host = req.headers["x-forwarded-host"] ?? req.get("host");
+      const resetUrl = `${proto}://${host}/reset-password?token=${token}`;
+      await sendResetEmail(email, resetUrl);
+      res.json({ message: "Reset link sent" });
+    } catch (err: any) {
+      res.status(500).json({ message: err.message ?? "Failed to send reset email" });
+    }
+  });
+
+  app.post("/api/reset-password", async (req, res) => {
+    const { token, password } = req.body;
+    if (!token || !password) {
+      return res.status(400).json({ message: "Token and password are required" });
+    }
+    const userId = consumeResetToken(token);
+    if (!userId) {
+      return res.status(400).json({ message: "This reset link is invalid or has expired" });
+    }
+    const hashed = await bcrypt.hash(password, 10);
+    await storage.updateUserPassword(userId, hashed);
+    res.json({ message: "Password updated" });
   });
 
   app.post("/api/login", (req, res, next) => {

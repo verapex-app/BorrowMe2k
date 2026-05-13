@@ -20,8 +20,10 @@ const PostgresSessionStore = connectPg(session);
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   getUserByCredential(credential: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUserPassword(id: number, hashedPassword: string): Promise<void>;
 
   listLoanProducts(): Promise<LoanProduct[]>;
   getLoanProduct(id: number): Promise<LoanProduct | undefined>;
@@ -62,6 +64,21 @@ export class DatabaseStorage implements IStorage {
       .from(users)
       .where(eq(users.username, username));
     return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, email));
+    return user;
+  }
+
+  async updateUserPassword(id: number, hashedPassword: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ password: hashedPassword })
+      .where(eq(users.id, id));
   }
 
   async getUserByCredential(credential: string): Promise<User | undefined> {
