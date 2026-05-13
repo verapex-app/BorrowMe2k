@@ -68,7 +68,7 @@ export function setupAuth(app: Express) {
     }
     const existing = await storage.getUserByEmail(email);
     if (existing) {
-      return res.status(409).json({ message: "An account with this email already exists. Please log in instead." });
+      return res.status(409).json({ message: "This email is already registered. Please log in instead." });
     }
     try {
       await sendOtpEmail(email);
@@ -94,12 +94,20 @@ export function setupAuth(app: Express) {
     try {
       const existingUser = await storage.getUserByUsername(req.body.username);
       if (existingUser) {
-        return res.status(400).send("Username already exists");
+        return res.status(409).json({ message: "This username is already taken." });
+      }
+
+      if (req.body.email) {
+        const existingEmail = await storage.getUserByEmail(req.body.email);
+        if (existingEmail) {
+          return res.status(409).json({ message: "This email is already registered. Please log in instead." });
+        }
       }
 
       const hashedPassword = await bcrypt.hash(req.body.password, 10);
       const user = await storage.createUser({
         ...req.body,
+        email: req.body.email ? req.body.email.toLowerCase() : req.body.email,
         password: hashedPassword,
       });
 
@@ -107,7 +115,16 @@ export function setupAuth(app: Express) {
         if (err) return next(err);
         res.status(201).json(user);
       });
-    } catch (err) {
+    } catch (err: any) {
+      if (err.code === "23505") {
+        if (err.constraint?.includes("email")) {
+          return res.status(409).json({ message: "This email is already registered. Please log in instead." });
+        }
+        if (err.constraint?.includes("username")) {
+          return res.status(409).json({ message: "This username is already taken." });
+        }
+        return res.status(409).json({ message: "Account already exists with these details." });
+      }
       next(err);
     }
   });
