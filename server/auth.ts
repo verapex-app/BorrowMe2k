@@ -66,11 +66,15 @@ export function setupAuth(app: Express) {
     if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
       return res.status(503).json({ message: "Email service is not configured" });
     }
+    const existing = await storage.getUserByEmail(email);
+    if (existing) {
+      return res.status(409).json({ message: "An account with this email already exists. Please log in instead." });
+    }
     try {
       await sendOtpEmail(email);
       res.json({ message: "OTP sent" });
     } catch (err: any) {
-      res.status(500).json({ message: "Failed to send OTP email. Check your email address." });
+      res.status(500).json({ message: err.message ?? "Failed to send OTP email. Check your email address." });
     }
   });
 
@@ -116,7 +120,7 @@ export function setupAuth(app: Express) {
     if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
       return res.status(503).json({ message: "Email service is not configured" });
     }
-    const user = await storage.getUserByEmail(email.toLowerCase());
+    const user = await storage.getUserByEmail(email);
     if (!user) {
       return res.status(404).json({ message: "No account found with this email address" });
     }

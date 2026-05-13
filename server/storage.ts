@@ -11,7 +11,7 @@ import {
   type Repayment,
 } from "@shared/schema";
 import { db, pool } from "./db";
-import { eq, and, desc, asc } from "drizzle-orm";
+import { eq, and, desc, asc, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 
@@ -70,7 +70,7 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db
       .select()
       .from(users)
-      .where(eq(users.email, email));
+      .where(sql`lower(${users.email}) = lower(${email})`);
     return user;
   }
 
