@@ -3,17 +3,15 @@ import { useLoanProducts, useApplyLoan } from "@/hooks/use-loans";
 import { LoanProductIcon } from "@/components/LoanProductIcon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { formatXAF } from "@/lib/format";
@@ -25,7 +23,6 @@ export default function Loans() {
   const [selected, setSelected] = useState<LoanProduct | null>(null);
   const [location] = useLocation();
 
-  // Auto-open product if ?product=ID is in the URL
   useEffect(() => {
     const params = new URLSearchParams(location.split("?")[1] ?? "");
     const id = Number(params.get("product"));
@@ -88,15 +85,12 @@ export default function Loans() {
             ))}
       </main>
 
-      <ApplyDialog
-        product={selected}
-        onClose={() => setSelected(null)}
-      />
+      <ApplySheet product={selected} onClose={() => setSelected(null)} />
     </div>
   );
 }
 
-function ApplyDialog({
+function ApplySheet({
   product,
   onClose,
 }: {
@@ -128,16 +122,10 @@ function ApplyDialog({
     const fee = (amount * Number(product.processingFeePct)) / 100;
     const total = amount * (1 + (rate / 100) * term);
     const monthly = total / Math.max(1, term);
-    return {
-      monthly,
-      total,
-      fee,
-      received: amount - fee,
-    };
+    return { monthly, total, fee, received: amount - fee };
   }, [product, amount, term]);
 
   if (!product) return null;
-
   const min = Number(product.minAmount);
   const max = Number(product.maxAmount);
 
@@ -160,39 +148,40 @@ function ApplyDialog({
   };
 
   return (
-    <Dialog open={!!product} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md p-0 overflow-hidden">
+    <Sheet open={!!product} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent
+        side="bottom"
+        className="rounded-t-2xl p-0 max-h-[92vh] flex flex-col overflow-hidden"
+      >
+        <div className="w-10 h-1 bg-border rounded-full mx-auto mt-3 shrink-0" />
+
         {success ? (
-          <div className="p-6 text-center space-y-3">
+          <div className="p-6 text-center space-y-4 overflow-y-auto">
             <div className="w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-8 h-8" />
             </div>
-            <DialogHeader className="space-y-1">
-              <DialogTitle className="text-center">Loan approved!</DialogTitle>
-              <DialogDescription className="text-center">
-                {formatXAF(amount)} has been credited toward your{" "}
-                {product.name}. You can view it in My Loans.
-              </DialogDescription>
-            </DialogHeader>
+            <SheetHeader className="space-y-1">
+              <SheetTitle className="text-center">Loan approved!</SheetTitle>
+              <SheetDescription className="text-center">
+                {formatXAF(amount)} has been credited toward your {product.name}. You can view it in My Loans.
+              </SheetDescription>
+            </SheetHeader>
             <Button
               data-testid="button-go-to-my-loans"
               className="w-full"
-              onClick={() => {
-                onClose();
-                setLocation("/my-loans");
-              }}
+              onClick={() => { onClose(); setLocation("/my-loans"); }}
             >
               Go to My Loans
             </Button>
           </div>
         ) : (
-          <>
-            <DialogHeader className="px-6 pt-6">
-              <DialogTitle>{product.name}</DialogTitle>
-              <DialogDescription>{product.description}</DialogDescription>
-            </DialogHeader>
+          <div className="flex flex-col overflow-hidden">
+            <SheetHeader className="px-5 pt-4 pb-2 shrink-0">
+              <SheetTitle>{product.name}</SheetTitle>
+              <SheetDescription>{product.description}</SheetDescription>
+            </SheetHeader>
 
-            <div className="px-6 pb-2 space-y-5">
+            <div className="px-5 pb-2 space-y-5 overflow-y-auto flex-1">
               <div>
                 <div className="flex justify-between items-center mb-1">
                   <label className="text-xs font-semibold">Amount</label>
@@ -248,48 +237,30 @@ function ApplyDialog({
 
               {summary && (
                 <div className="rounded-xl bg-secondary/60 border border-border p-3 text-xs space-y-1.5">
-                  <Row
-                    label="Monthly payment"
-                    value={formatXAF(summary.monthly)}
-                    highlight
-                  />
-                  <Row
-                    label="Total to repay"
-                    value={formatXAF(summary.total)}
-                  />
-                  <Row
-                    label="Processing fee"
-                    value={formatXAF(summary.fee)}
-                  />
-                  <Row
-                    label="You receive"
-                    value={formatXAF(summary.received)}
-                  />
-                  <Row
-                    label="Interest"
-                    value={`${product.interestRate}% / month`}
-                  />
+                  <Row label="Monthly payment" value={formatXAF(summary.monthly)} highlight />
+                  <Row label="Total to repay" value={formatXAF(summary.total)} />
+                  <Row label="Processing fee" value={formatXAF(summary.fee)} />
+                  <Row label="You receive" value={formatXAF(summary.received)} />
+                  <Row label="Interest" value={`${product.interestRate}% / month`} />
                 </div>
               )}
             </div>
 
-            <DialogFooter className="px-6 pb-6 pt-2">
+            <div className="px-5 pb-6 pt-3 shrink-0 border-t border-border/50">
               <Button
                 data-testid="button-submit-application"
                 onClick={handleApply}
                 disabled={isPending || amount < min || amount > max}
                 className="w-full"
               >
-                {isPending ? (
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                ) : null}
+                {isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                 Apply for {formatXAF(amount)}
               </Button>
-            </DialogFooter>
-          </>
+            </div>
+          </div>
         )}
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -305,11 +276,7 @@ function Row({
   return (
     <div className="flex justify-between items-center">
       <span className="text-muted-foreground">{label}</span>
-      <span
-        className={`font-semibold ${
-          highlight ? "text-primary text-sm" : "text-foreground"
-        }`}
-      >
+      <span className={`font-semibold ${highlight ? "text-primary text-sm" : "text-foreground"}`}>
         {value}
       </span>
     </div>

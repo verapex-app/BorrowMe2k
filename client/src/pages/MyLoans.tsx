@@ -5,13 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import {
   Select,
   SelectContent,
@@ -56,7 +55,7 @@ export default function MyLoans() {
         )}
       </main>
 
-      <RepayDialog loan={repayLoan} onClose={() => setRepayLoan(null)} />
+      <RepaySheet loan={repayLoan} onClose={() => setRepayLoan(null)} />
     </div>
   );
 }
@@ -116,9 +115,7 @@ function LoanCard({ loan, onRepay }: { loan: Loan; onRepay: () => void }) {
           </p>
         </div>
         <div className="text-right shrink-0">
-          <p className="text-[10px] text-muted-foreground uppercase">
-            Borrowed
-          </p>
+          <p className="text-[10px] text-muted-foreground uppercase">Borrowed</p>
           <p className="font-bold text-sm">{formatXAF(principal)}</p>
         </div>
       </div>
@@ -168,15 +165,13 @@ function LoanCard({ loan, onRepay }: { loan: Loan; onRepay: () => void }) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg bg-secondary/60 px-2 py-1.5">
-      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
-        {label}
-      </p>
+      <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{label}</p>
       <p className="font-semibold text-foreground truncate">{value}</p>
     </div>
   );
 }
 
-function RepayDialog({
+function RepaySheet({
   loan,
   onClose,
 }: {
@@ -191,8 +186,7 @@ function RepayDialog({
   const repay = useRepayLoan(loan?.id ?? 0);
 
   if (!loan) return null;
-  const outstanding =
-    Number(loan.totalRepayment) - Number(loan.amountPaid);
+  const outstanding = Number(loan.totalRepayment) - Number(loan.amountPaid);
 
   const handlePay = async () => {
     const value = Number(amount);
@@ -218,19 +212,22 @@ function RepayDialog({
   };
 
   return (
-    <Dialog open={!!loan} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Repay {loan.productName}</DialogTitle>
-          <DialogDescription>
-            Outstanding balance:{" "}
-            <span className="font-bold text-foreground">
-              {formatXAF(outstanding)}
-            </span>
-          </DialogDescription>
-        </DialogHeader>
+    <Sheet open={!!loan} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent
+        side="bottom"
+        className="rounded-t-2xl p-0 max-h-[85vh] flex flex-col overflow-hidden"
+      >
+        <div className="w-10 h-1 bg-border rounded-full mx-auto mt-3 shrink-0" />
 
-        <div className="space-y-3">
+        <SheetHeader className="px-5 pt-4 pb-2 shrink-0">
+          <SheetTitle>Repay {loan.productName}</SheetTitle>
+          <SheetDescription>
+            Outstanding balance:{" "}
+            <span className="font-bold text-foreground">{formatXAF(outstanding)}</span>
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="px-5 pb-2 space-y-4 overflow-y-auto flex-1">
           <div>
             <label className="text-xs font-semibold">Amount (FCFA)</label>
             <Input
@@ -247,21 +244,17 @@ function RepayDialog({
                 type="button"
                 data-testid="button-pay-monthly"
                 onClick={() =>
-                  setAmount(
-                    Math.round(Number(loan.monthlyPayment)).toString(),
-                  )
+                  setAmount(Math.round(Number(loan.monthlyPayment)).toString())
                 }
-                className="text-[11px] font-semibold text-primary bg-primary/10 px-2 py-1 rounded-md"
+                className="text-[11px] font-semibold text-primary bg-primary/10 px-3 py-1.5 rounded-lg"
               >
                 Pay 1 month
               </button>
               <button
                 type="button"
                 data-testid="button-pay-full"
-                onClick={() =>
-                  setAmount(Math.round(outstanding).toString())
-                }
-                className="text-[11px] font-semibold text-primary bg-primary/10 px-2 py-1 rounded-md"
+                onClick={() => setAmount(Math.round(outstanding).toString())}
+                className="text-[11px] font-semibold text-primary bg-primary/10 px-3 py-1.5 rounded-lg"
               >
                 Pay full balance
               </button>
@@ -274,16 +267,11 @@ function RepayDialog({
               value={method}
               onValueChange={(v) => setMethod(v as typeof method)}
             >
-              <SelectTrigger
-                data-testid="select-payment-method"
-                className="mt-1"
-              >
+              <SelectTrigger data-testid="select-payment-method" className="mt-1">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="mobile_money">
-                  MTN / Orange Mobile Money
-                </SelectItem>
+                <SelectItem value="mobile_money">MTN / Orange Mobile Money</SelectItem>
                 <SelectItem value="bank_transfer">Bank transfer</SelectItem>
                 <SelectItem value="cash">Cash at agent</SelectItem>
               </SelectContent>
@@ -291,20 +279,18 @@ function RepayDialog({
           </div>
         </div>
 
-        <DialogFooter>
+        <div className="px-5 pb-8 pt-3 shrink-0 border-t border-border/50">
           <Button
             data-testid="button-confirm-payment"
             onClick={handlePay}
             disabled={repay.isPending}
             className="w-full"
           >
-            {repay.isPending && (
-              <Loader2 className="w-4 h-4 animate-spin mr-2" />
-            )}
+            {repay.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
             Confirm payment
           </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
