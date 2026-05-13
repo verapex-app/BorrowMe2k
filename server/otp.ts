@@ -42,21 +42,29 @@ export async function sendOtpEmail(email: string): Promise<string> {
     },
   });
 
-  await transporter.sendMail({
-    from: `"BorrowMe" <${process.env.GMAIL_USER}>`,
-    to: email,
-    subject: "Your BorrowMe verification code",
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;background:#f9fafb;border-radius:12px;">
-        <h2 style="color:#1d4ed8;margin-bottom:8px;">BorrowMe</h2>
-        <p style="color:#374151;font-size:15px;">Your email verification code is:</p>
-        <div style="font-size:40px;font-weight:800;letter-spacing:12px;color:#1d4ed8;margin:24px 0;text-align:center;">
-          ${code}
+  try {
+    await transporter.sendMail({
+      from: `"BorrowMe" <${process.env.GMAIL_USER}>`,
+      to: email,
+      subject: "Your BorrowMe verification code",
+      html: `
+        <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;background:#f9fafb;border-radius:12px;">
+          <h2 style="color:#1d4ed8;margin-bottom:8px;">BorrowMe</h2>
+          <p style="color:#374151;font-size:15px;">Your email verification code is:</p>
+          <div style="font-size:40px;font-weight:800;letter-spacing:12px;color:#1d4ed8;margin:24px 0;text-align:center;">
+            ${code}
+          </div>
+          <p style="color:#6b7280;font-size:13px;">This code expires in 10 minutes. Do not share it with anyone.</p>
         </div>
-        <p style="color:#6b7280;font-size:13px;">This code expires in 10 minutes. Do not share it with anyone.</p>
-      </div>
-    `,
-  });
+      `,
+    });
+  } catch (err: any) {
+    otpStore.delete(email.toLowerCase());
+    if (err.code === "EAUTH" || err.responseCode === 535) {
+      throw new Error("Gmail authentication failed. Check GMAIL_USER and GMAIL_APP_PASSWORD.");
+    }
+    throw new Error("Failed to send email. Please check the address and try again.");
+  }
 
   return code;
 }

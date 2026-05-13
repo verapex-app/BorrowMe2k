@@ -25,7 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Banknote, ArrowLeft, ArrowRight, Mail, CheckCircle2, Loader2 } from "lucide-react";
 import { z } from "zod";
-import { apiRequest } from "@/lib/queryClient";
+
 
 const loginSchema = insertUserSchema.pick({ username: true, password: true });
 
@@ -243,15 +243,28 @@ function RegisterWizard({
     setStep(2);
   };
 
+  const postJson = async (url: string, body: unknown) => {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(body),
+    });
+    let json: any = null;
+    try { json = await res.json(); } catch {}
+    if (!res.ok) {
+      throw new Error(json?.message ?? `Error ${res.status}`);
+    }
+    return json;
+  };
+
   const handleSendOtp = async () => {
     const email = step2Form.getValues("email");
     const valid = await step2Form.trigger("email");
     if (!valid) return;
     setSendingOtp(true);
     try {
-      const res = await apiRequest("POST", "/api/send-otp", { email });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.message);
+      await postJson("/api/send-otp", { email });
       setOtpSent(true);
       toast({ title: "Code sent!", description: `Check ${email} for your 4-digit code.` });
     } catch (err: any) {
@@ -277,13 +290,11 @@ function RegisterWizard({
   const handleStep3 = async (data: Step3Data) => {
     const email = (collected.email as string) ?? step2Form.getValues("email");
     try {
-      const res = await apiRequest("POST", "/api/verify-otp", { email, code: data.otp });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.message);
+      await postJson("/api/verify-otp", { email, code: data.otp });
       setVerifiedEmail(email);
       setStep(4);
     } catch (err: any) {
-      step3Form.setError("otp", { message: err.message ?? "Invalid code" });
+      step3Form.setError("otp", { message: err.message ?? "Invalid or expired code" });
     }
   };
 
