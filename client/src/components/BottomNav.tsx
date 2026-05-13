@@ -14,12 +14,13 @@ export function BottomNav() {
   ];
 
   return (
-    <div className="sticky bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-border z-[100]">
+    <div className="sticky bottom-0 left-0 right-0 bg-background/95 backdrop-blur-xl border-t border-border z-[45]">
       <div className="flex justify-around items-center px-2 py-2 pb-3">
         {navItems.map((item) => {
           const isActive = location === item.href;
           const testId = `nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`;
           return (
+
             <Link key={item.href} href={item.href}>
               <button
                 data-testid={testId}
