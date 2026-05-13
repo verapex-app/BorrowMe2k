@@ -98,9 +98,6 @@ export function setupAuth(app: Express) {
         password: hashedPassword,
       });
 
-      // Claim any pending transfers for new user
-      await storage.claimPendingTransfers(user);
-
       req.login(user, (err) => {
         if (err) return next(err);
         res.status(201).json(user);
