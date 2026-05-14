@@ -14,7 +14,7 @@ PORT = "5000"
 
 [deployment]
 deploymentTarget = "autoscale"
-run = ["npm", "run", "start"]
+run = ["node", "./dist/index.cjs"]
 build = ["npm", "run", "build"]
 
 [workflows]
@@ -33,13 +33,13 @@ args = "Start application"
 name = "Start application"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "webview"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
-
-[workflows.workflow.metadata]
-outputType = "webview"
 
 [agent]
 expertMode = true
@@ -48,4 +48,3 @@ stack = "FULLSTACK_JS"
 [userenv]
 
 [userenv.shared]
-NEON_DB = "postgresql://neondb_owner:npg_8fzuM5UOvLnV@ep-still-poetry-apfyyg1d-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
