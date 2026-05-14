@@ -83,9 +83,9 @@ export default function AuthPage() {
         <Card className="border-border/60 shadow-xl">
           <CardHeader className="text-center space-y-2 pb-2">
             <img
-              src="/SIGN_IN.png"
+              src="/logo.png"
               alt="BorrowMe2K — Cameroon instant loan app"
-              className="mx-auto w-44 h-44 object-contain"
+              className="mx-auto h-20 w-auto object-contain"
             />
             <div>
               <CardTitle className="text-3xl font-extrabold tracking-tight">

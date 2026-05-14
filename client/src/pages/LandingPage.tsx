@@ -251,15 +251,7 @@ export default function LandingPage() {
             aria-label="Main navigation"
           >
             <a href="/" className="flex items-center gap-2.5" aria-label="BorrowMe2K home">
-              <span className="w-8 h-8 rounded-lg bg-[#2d6a4f] flex items-center justify-center shrink-0">
-                <svg viewBox="0 0 32 32" fill="none" className="w-5 h-5" aria-hidden="true">
-                  <path d="M8 24V14l8-8 8 8v10" stroke="white" strokeWidth="2.2" strokeLinejoin="round"/>
-                  <rect x="12" y="17" width="8" height="7" rx="1" fill="white" opacity=".85"/>
-                </svg>
-              </span>
-              <span className="font-display font-bold text-[#1b4332] text-lg tracking-tight">
-                BorrowMe<span className="text-[#2d6a4f]">2K</span>
-              </span>
+              <img src="/logo.png" alt="BorrowMe2K logo" className="h-9 w-auto" />
             </a>
             <div className="flex items-center gap-3">
               <Link
@@ -778,13 +770,7 @@ export default function LandingPage() {
             <div className="grid sm:grid-cols-3 gap-8 mb-10">
               <div>
                 <a href="/" className="flex items-center gap-2 mb-3" aria-label="BorrowMe2K home">
-                  <span className="w-7 h-7 rounded-lg bg-[#2d6a4f] flex items-center justify-center">
-                    <svg viewBox="0 0 32 32" fill="none" className="w-4 h-4" aria-hidden="true">
-                      <path d="M8 24V14l8-8 8 8v10" stroke="white" strokeWidth="2.2" strokeLinejoin="round"/>
-                      <rect x="12" y="17" width="8" height="7" rx="1" fill="white" opacity=".85"/>
-                    </svg>
-                  </span>
-                  <span className="font-display font-bold text-white text-sm">BorrowMe2K</span>
+                  <img src="/logo.png" alt="BorrowMe2K logo" className="h-8 w-auto brightness-0 invert" />
                 </a>
                 <p className="text-[#74c69d] text-sm leading-relaxed">
                   Cameroon's online micro-lending platform. Fast, fair, collateral-free.
