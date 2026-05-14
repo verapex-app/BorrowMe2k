@@ -60,6 +60,56 @@ export const repayments = pgTable("repayments", {
   method: text("method").notNull().default("mobile_money"),
 });
 
+// ── Reusable field validators ──────────────────────────────────────────────
+
+/** Lowercase-only, alphanumeric + underscore, 3–30 chars */
+export const usernameField = z
+  .string()
+  .min(3, "Username must be at least 3 characters")
+  .max(30, "Username must be 30 characters or fewer")
+  .regex(
+    /^[a-z0-9_]+$/,
+    "Username can only contain lowercase letters, numbers and underscores — no spaces",
+  )
+  .transform((v) => v.toLowerCase().trim());
+
+export const passwordField = z
+  .string()
+  .min(8, "Password must be at least 8 characters")
+  .max(128, "Password is too long");
+
+export const emailField = z
+  .string()
+  .email("Enter a valid email address")
+  .max(254, "Email address is too long")
+  .transform((v) => v.trim().toLowerCase());
+
+export const phoneField = z
+  .string()
+  .min(8, "Enter a valid phone number")
+  .max(20, "Phone number is too long")
+  .transform((v) => v.replace(/\s+/g, ""));
+
+export const nameField = z
+  .string()
+  .min(2, "Enter your full name")
+  .max(100, "Name is too long")
+  .transform((v) => v.trim());
+
+export const cityField = z
+  .string()
+  .min(2, "City is required")
+  .max(100, "City name is too long")
+  .transform((v) => v.trim());
+
+export const purposeField = z
+  .string()
+  .min(3, "Tell us briefly what the loan is for")
+  .max(500, "Purpose is too long — keep it under 500 characters")
+  .transform((v) => v.trim());
+
+// ── Schemas ────────────────────────────────────────────────────────────────
+
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 
 export const insertLoanProductSchema = createInsertSchema(loanProducts).omit({
@@ -68,18 +118,16 @@ export const insertLoanProductSchema = createInsertSchema(loanProducts).omit({
 
 export const applyLoanSchema = z.object({
   productId: z.number().int().positive("Choose a loan product"),
-  principal: z.coerce
-    .number()
-    .positive("Amount must be greater than zero"),
-  termMonths: z.coerce
-    .number()
-    .int()
-    .positive("Term must be at least 1 month"),
-  purpose: z.string().min(3, "Tell us briefly what the loan is for"),
+  principal: z.coerce.number().positive("Amount must be greater than zero").max(100_000_000, "Amount is too large"),
+  termMonths: z.coerce.number().int().positive("Term must be at least 1 month").max(360, "Term is too long"),
+  purpose: purposeField,
 });
 
 export const repaymentSchema = z.object({
-  amount: z.coerce.number().positive("Amount must be greater than zero"),
+  amount: z.coerce
+    .number()
+    .positive("Amount must be greater than zero")
+    .max(100_000_000, "Amount is too large"),
   method: z
     .enum(["mobile_money", "bank_transfer", "cash"])
     .default("mobile_money"),

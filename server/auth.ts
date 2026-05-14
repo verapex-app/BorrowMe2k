@@ -4,9 +4,11 @@ import { Express } from "express";
 import session from "express-session";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
-import { User as SelectUser } from "@shared/schema";
+import { User as SelectUser, usernameField, passwordField, emailField, phoneField, nameField, cityField } from "@shared/schema";
 import { sendOtpEmail, verifyOtp } from "./otp";
 import { createResetToken, consumeResetToken, sendResetEmail } from "./reset";
+import { sanitizeString, sanitizeEmail, sanitizeUsername, sanitizePhone } from "./sanitize";
+import { z } from "zod";
 
 declare global {
   namespace Express {
@@ -101,23 +103,46 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
-      const existingUser = await storage.getUserByUsername(req.body.username);
+      // Validate and sanitize all registration fields up-front
+      const registerSchema = z.object({
+        username: usernameField,
+        password: passwordField,
+        fullName: nameField,
+        email: emailField,
+        phone: phoneField,
+        city: cityField.optional().default("Douala"),
+      });
+
+      let parsed: z.infer<typeof registerSchema>;
+      try {
+        parsed = registerSchema.parse({
+          username: sanitizeUsername(req.body.username),
+          password: req.body.password,
+          fullName: sanitizeString(req.body.fullName, 100),
+          email: sanitizeEmail(req.body.email),
+          phone: sanitizePhone(req.body.phone),
+          city: sanitizeString(req.body.city ?? "Douala", 100),
+        });
+      } catch (err: any) {
+        if (err instanceof z.ZodError) {
+          return res.status(400).json({ message: err.errors[0].message });
+        }
+        return res.status(400).json({ message: "Invalid registration data" });
+      }
+
+      const existingUser = await storage.getUserByUsername(parsed.username);
       if (existingUser) {
         return res.status(409).json({ message: "This username is already taken." });
       }
 
-      if (req.body.email) {
-        const existingEmail = await storage.getUserByEmail(req.body.email);
-        if (existingEmail) {
-          return res.status(409).json({ message: "This email is already registered. Please log in instead." });
-        }
+      const existingEmail = await storage.getUserByEmail(parsed.email);
+      if (existingEmail) {
+        return res.status(409).json({ message: "This email is already registered. Please log in instead." });
       }
 
-      const hashedPassword = await bcrypt.hash(req.body.password, 10);
+      const hashedPassword = await bcrypt.hash(parsed.password, 10);
       const user = await storage.createUser({
-        ...req.body,
-        email: req.body.email ? req.body.email.trim().toLowerCase() : req.body.email,
-        phone: req.body.phone ? req.body.phone.trim().replace(/\s+/g, "") : req.body.phone,
+        ...parsed,
         password: hashedPassword,
       });
 

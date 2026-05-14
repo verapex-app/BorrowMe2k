@@ -3,7 +3,7 @@ import { useUser } from "@/hooks/use-user";
 import { useLocation } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { insertUserSchema, type InsertUser } from "@shared/schema";
+import { insertUserSchema, usernameField, passwordField, emailField, phoneField, nameField, cityField, type InsertUser } from "@shared/schema";
 import {
   Card,
   CardContent,
@@ -27,17 +27,20 @@ import { ArrowLeft, ArrowRight, Mail, CheckCircle2, Loader2 } from "lucide-react
 import { z } from "zod";
 
 
-const loginSchema = insertUserSchema.pick({ username: true, password: true });
+const loginSchema = z.object({
+  username: z.string().min(1, "Enter your username"),
+  password: z.string().min(1, "Enter your password"),
+});
 
 const step1Schema = z.object({
-  fullName: z.string().min(2, "Enter your full name"),
-  username: z.string().min(3, "Username must be at least 3 characters"),
-  city: z.string().min(2, "City is required"),
+  fullName: nameField,
+  username: usernameField,
+  city: cityField,
 });
 
 const step2Schema = z.object({
-  phone: z.string().min(8, "Enter a valid Cameroonian phone number"),
-  email: z.string().email("Enter a valid email address"),
+  phone: phoneField,
+  email: emailField,
 });
 
 const step3Schema = z.object({
@@ -45,7 +48,7 @@ const step3Schema = z.object({
 });
 
 const step4Schema = z.object({
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  password: passwordField,
 });
 
 type Step1Data = z.infer<typeof step1Schema>;
@@ -445,8 +448,24 @@ function RegisterWizard({
                 <FormItem>
                   <FormLabel>Username</FormLabel>
                   <FormControl>
-                    <Input placeholder="Pick a unique username" {...field} />
+                    <Input
+                      placeholder="e.g. awa_tabe"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      {...field}
+                      onChange={(e) => {
+                        const cleaned = e.target.value
+                          .toLowerCase()
+                          .replace(/\s+/g, "")
+                          .replace(/[^a-z0-9_]/g, "");
+                        field.onChange(cleaned);
+                      }}
+                    />
                   </FormControl>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Lowercase letters, numbers and underscores only.
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}

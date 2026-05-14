@@ -32,6 +32,7 @@ function KycBottomSheet({
   const [kycLink, setKycLink] = useState(user.kycLink ?? "");
   const [kycNotes, setKycNotes] = useState(user.kycNotes ?? "");
   const [showIframe, setShowIframe] = useState(false);
+  const [kycLinkError, setKycLinkError] = useState("");
 
   const updateUser = useMutation({
     mutationFn: (patch: Partial<AdminUser>) =>
@@ -47,7 +48,17 @@ function KycBottomSheet({
     updateUser.mutate({ kycStatus: status, kycNotes, kycLink });
   };
 
+  const isValidUrl = (val: string) => {
+    if (!val) return true;
+    try { new URL(val); return true; } catch { return false; }
+  };
+
   const saveLink = () => {
+    if (kycLink && !isValidUrl(kycLink)) {
+      setKycLinkError("Must be a valid URL starting with https://");
+      return;
+    }
+    setKycLinkError("");
     updateUser.mutate({ kycLink, kycNotes });
   };
 
@@ -109,9 +120,9 @@ function KycBottomSheet({
             <div className="flex gap-2">
               <input
                 value={kycLink}
-                onChange={(e) => setKycLink(e.target.value)}
+                onChange={(e) => { setKycLink(e.target.value); setKycLinkError(""); }}
                 placeholder="https://kyc-provider.com/session/..."
-                className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-500"
+                className={`flex-1 text-sm border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-500 ${kycLinkError ? "border-red-400" : "border-gray-200"}`}
               />
               <button
                 onClick={saveLink}
@@ -120,6 +131,9 @@ function KycBottomSheet({
                 Save
               </button>
             </div>
+            {kycLinkError && (
+              <p className="text-xs text-red-500 mt-1">{kycLinkError}</p>
+            )}
             {kycLink && (
               <button
                 onClick={() => setShowIframe(!showIframe)}

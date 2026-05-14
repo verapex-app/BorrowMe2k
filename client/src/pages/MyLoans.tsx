@@ -189,9 +189,22 @@ function RepaySheet({
   const outstanding = Number(loan.totalRepayment) - Number(loan.amountPaid);
 
   const handlePay = async () => {
-    const value = Number(amount);
-    if (!value || value <= 0) {
-      toast({ variant: "destructive", title: "Enter an amount" });
+    const raw = amount.trim();
+    const value = Number(raw);
+    if (!raw || Number.isNaN(value) || value <= 0) {
+      toast({ variant: "destructive", title: "Enter a valid amount" });
+      return;
+    }
+    if (value > 100_000_000) {
+      toast({ variant: "destructive", title: "Amount is too large" });
+      return;
+    }
+    if (value > outstanding * 1.01) {
+      toast({
+        variant: "destructive",
+        title: "Amount exceeds balance",
+        description: `Maximum you can pay is ${formatXAF(Math.ceil(outstanding))}.`,
+      });
       return;
     }
     try {

@@ -5,6 +5,7 @@ import { setupAuth } from "./auth";
 import { api } from "@shared/routes";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import { sanitizeString, sanitizeEmail, sanitizePhone, sanitizeUsername } from "./sanitize";
 
 function calcMonthlyPayment(
   principal: number,
@@ -255,11 +256,36 @@ export async function registerRoutes(
   app.patch("/api/admin/users/:id", requireAdmin, async (req, res) => {
     const id = Number(req.params.id);
     if (Number.isNaN(id)) return res.status(400).json({ message: "Invalid id" });
-    const allowed = ["kycStatus", "kycLink", "kycNotes", "fullName", "email", "phone", "city"];
-    const patch: Record<string, any> = {};
-    for (const key of allowed) {
-      if (key in req.body) patch[key] = req.body[key];
+
+    const kycStatusValues = ["not_submitted", "pending", "verified", "rejected"] as const;
+    const adminUserPatchSchema = z.object({
+      kycStatus: z.enum(kycStatusValues).optional(),
+      kycLink: z.string().url("KYC link must be a valid URL").max(2048).optional().nullable()
+        .transform((v) => (v ? v.trim() : v)),
+      kycNotes: z.string().max(2000).optional().nullable()
+        .transform((v) => (typeof v === "string" ? sanitizeString(v, 2000) : v)),
+      fullName: z.string().min(2).max(100).optional()
+        .transform((v) => (v ? sanitizeString(v, 100) : v)),
+      email: z.string().email().max(254).optional()
+        .transform((v) => (v ? sanitizeEmail(v) : v)),
+      phone: z.string().max(20).optional()
+        .transform((v) => (v ? sanitizePhone(v) : v)),
+      city: z.string().min(2).max(100).optional()
+        .transform((v) => (v ? sanitizeString(v, 100) : v)),
+    });
+
+    let patch: Record<string, any>;
+    try {
+      patch = adminUserPatchSchema.parse(req.body);
+      // Remove undefined keys
+      Object.keys(patch).forEach((k) => patch[k] === undefined && delete patch[k]);
+    } catch (err: any) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      return res.status(400).json({ message: "Invalid data" });
     }
+
     const updated = await storage.updateUser(id, patch);
     const { password: _p, ...safe } = updated;
     res.json(safe);
