@@ -74,7 +74,7 @@ export function setupAuth(app: Express) {
     if (!email || typeof email !== "string") {
       return res.status(400).json({ message: "Email is required" });
     }
-    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+    if (!process.env.RESEND_API_KEY) {
       return res.status(503).json({ message: "Email service is not configured" });
     }
     const existing = await storage.getUserByEmail(email);
@@ -169,7 +169,7 @@ export function setupAuth(app: Express) {
     if (!email || typeof email !== "string") {
       return res.status(400).json({ message: "Email is required" });
     }
-    if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+    if (!process.env.RESEND_API_KEY) {
       return res.status(503).json({ message: "Email service is not configured" });
     }
     const user = await storage.getUserByEmail(email);

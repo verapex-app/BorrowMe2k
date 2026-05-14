@@ -215,7 +215,7 @@ export async function registerRoutes(
     });
 
     const applicant = await storage.getUser(req.user.id);
-    if (applicant?.email && process.env.ADMIN_EMAIL && process.env.GMAIL_USER) {
+    if (applicant?.email && process.env.ADMIN_EMAIL && process.env.RESEND_API_KEY) {
       sendLoanApplicationEmails({
         applicantEmail: applicant.email,
         applicantName: applicant.fullName ?? applicant.username,
