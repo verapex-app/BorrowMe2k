@@ -7,10 +7,11 @@ import {
   Sheet,
   SheetContent,
 } from "@/components/ui/sheet";
-import { Bell, Plus, FileText, ChevronRight, Banknote, ArrowDownToLine } from "lucide-react";
+import { Bell, Plus, FileText, ChevronRight, Banknote, ArrowDownToLine, Clock, ExternalLink } from "lucide-react";
 import { Link } from "wouter";
 import { LoanProductIcon } from "@/components/LoanProductIcon";
 import { formatXAF, formatDate } from "@/lib/format";
+import type { Loan } from "@shared/schema";
 
 export default function Dashboard() {
   const { user } = useUser();
@@ -18,8 +19,10 @@ export default function Dashboard() {
   const { data: products } = useLoanProducts();
   const { data: loans } = useLoans();
   const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [kycLoan, setKycLoan] = useState<Loan | null>(null);
 
   const activeLoan = loans?.find((l) => l.status === "active");
+  const pendingLoan = loans?.find((l) => l.status === "pending");
   const featured = (products ?? []).slice(0, 4);
   const displayName = user?.fullName?.split(" ")[0] ?? user?.username ?? "there";
 
@@ -95,6 +98,34 @@ export default function Dashboard() {
           </div>
         </section>
 
+        {/* Pending loan alert */}
+        {pendingLoan && (
+          <section>
+            <button
+              data-testid="button-pending-loan-banner"
+              onClick={() => setKycLoan(pendingLoan)}
+              className="w-full rounded-2xl border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 p-4 text-left active:scale-[0.99] transition-transform"
+            >
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
+                  <Clock className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-sm text-amber-800 dark:text-amber-300">
+                    Application under review
+                  </p>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5 line-clamp-1">
+                    {pendingLoan.productName} · {formatXAF(pendingLoan.principal)}
+                  </p>
+                  <p className="text-xs text-amber-600 dark:text-amber-500 mt-1 font-medium">
+                    {user?.kycLink ? "Tap to complete your KYC verification →" : "Tap to check status →"}
+                  </p>
+                </div>
+              </div>
+            </button>
+          </section>
+        )}
+
         {/* Quick actions */}
         <section className="space-y-3">
           <div className="grid grid-cols-2 gap-3">
@@ -124,6 +155,7 @@ export default function Dashboard() {
         </section>
 
         <WithdrawBlockedSheet open={withdrawOpen} onClose={() => setWithdrawOpen(false)} />
+        <PendingKycSheet loan={kycLoan} user={user} onClose={() => setKycLoan(null)} />
 
         {/* Active loan summary */}
         {activeLoan && (
@@ -207,6 +239,80 @@ export default function Dashboard() {
         </section>
       </main>
     </div>
+  );
+}
+
+function PendingKycSheet({
+  loan,
+  user,
+  onClose,
+}: {
+  loan: Loan | null;
+  user: any;
+  onClose: () => void;
+}) {
+  if (!loan) return null;
+
+  const hasLink = !!user?.kycLink;
+  const kycStatus = user?.kycStatus ?? "not_submitted";
+
+  return (
+    <Sheet open={!!loan} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent
+        side="bottom"
+        className="rounded-t-2xl p-0 max-h-[85vh] flex flex-col overflow-hidden"
+      >
+        <div className="w-10 h-1 bg-border rounded-full mx-auto mt-3 shrink-0" />
+        <div className="flex flex-col items-center px-6 pb-8 pt-2 text-center overflow-y-auto">
+          <img
+            src="/KYC.png"
+            alt="KYC verification illustration"
+            className="w-44 h-44 object-contain"
+          />
+
+          {hasLink ? (
+            <>
+              <h2 className="text-xl font-bold text-foreground mt-1">Identity verification needed</h2>
+              <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xs">
+                Your application for <span className="font-semibold text-foreground">{loan.productName}</span> is ready.
+                Complete your KYC to receive your funds.
+              </p>
+              <a
+                href={user.kycLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="link-dashboard-kyc"
+                className="mt-5 flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground rounded-xl py-3.5 font-semibold text-sm"
+              >
+                <ExternalLink className="w-4 h-4" />
+                {kycStatus === "rejected" ? "Resubmit KYC" : "Start Verification"}
+              </a>
+              <button onClick={onClose} className="mt-3 text-sm text-muted-foreground py-1.5">
+                I'll do this later
+              </button>
+            </>
+          ) : (
+            <>
+              <h2 className="text-xl font-bold text-foreground mt-1">Application under review</h2>
+              <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xs">
+                Your <span className="font-semibold text-foreground">{loan.productName}</span> application is being processed by our team. We'll email you with the next steps within 10 minutes.
+              </p>
+              <div className="w-full mt-3 bg-muted rounded-xl px-4 py-3 text-left">
+                <p className="text-xs text-muted-foreground">
+                  <span className="font-semibold text-foreground">Application for:</span> {formatXAF(loan.principal)}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  <span className="font-semibold text-foreground">Reason:</span> {loan.purpose}
+                </p>
+              </div>
+              <button onClick={onClose} className="mt-5 w-full bg-primary text-primary-foreground rounded-xl py-3.5 font-semibold text-sm">
+                Got it
+              </button>
+            </>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 

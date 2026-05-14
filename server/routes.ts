@@ -6,6 +6,7 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { sanitizeString, sanitizeEmail, sanitizePhone, sanitizeUsername } from "./sanitize";
+import { sendLoanApplicationEmails } from "./email";
 
 function calcMonthlyPayment(
   principal: number,
@@ -158,6 +159,74 @@ export async function registerRoutes(
       }
       throw err;
     }
+  });
+
+  // Pre-KYC loan intent — creates a pending loan and notifies admin + applicant
+  app.post("/api/loan-intent", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const intentSchema = z.object({
+      productId: z.number().int().positive(),
+      principal: z.coerce.number().positive().max(100_000_000),
+      termMonths: z.coerce.number().int().positive().max(360),
+      reason: z.string().min(3, "Please describe why you need this loan").max(500),
+    });
+
+    let input: z.infer<typeof intentSchema>;
+    try {
+      input = intentSchema.parse(req.body);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors[0].message });
+      }
+      return res.status(400).json({ message: "Invalid request" });
+    }
+
+    const existingLoans = await storage.listLoans(req.user.id);
+    const hasPending = existingLoans.some((l) => l.status === "pending");
+    if (hasPending) {
+      return res.status(409).json({ message: "You already have a pending application." });
+    }
+
+    const product = await storage.getLoanProduct(input.productId);
+    if (!product) return res.status(400).json({ message: "Loan product not found" });
+
+    const principal = input.principal;
+    const rate = Number(product.interestRate);
+    const monthly = principal * (1 + (rate / 100) * input.termMonths) / input.termMonths;
+    const total = monthly * input.termMonths;
+    const dueDate = new Date();
+    dueDate.setMonth(dueDate.getMonth() + input.termMonths);
+
+    const loan = await storage.createLoan({
+      userId: req.user.id,
+      productId: product.id,
+      productName: product.name,
+      principal: principal.toFixed(2),
+      interestRate: rate.toFixed(2),
+      termMonths: input.termMonths,
+      monthlyPayment: monthly.toFixed(2),
+      totalRepayment: total.toFixed(2),
+      amountPaid: "0",
+      purpose: input.reason,
+      status: "pending",
+      approvedAt: null,
+      dueDate,
+    });
+
+    const applicant = await storage.getUser(req.user.id);
+    if (applicant?.email && process.env.ADMIN_EMAIL && process.env.GMAIL_USER) {
+      sendLoanApplicationEmails({
+        applicantEmail: applicant.email,
+        applicantName: applicant.fullName ?? applicant.username,
+        productName: product.name,
+        amount: principal,
+        termMonths: input.termMonths,
+        reason: input.reason,
+      }).catch((err) => console.error("[email] loan-intent notification failed:", err));
+    }
+
+    res.status(201).json(loan);
   });
 
   app.get(api.repayments.list.path, async (req, res) => {

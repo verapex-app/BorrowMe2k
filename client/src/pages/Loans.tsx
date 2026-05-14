@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import { useLoanProducts, useApplyLoan } from "@/hooks/use-loans";
+import { useEffect, useMemo, useState, useRef } from "react";
+import { useLoanProducts, useApplyLoan, useLoanIntent, useLoans } from "@/hooks/use-loans";
 import { LoanProductIcon } from "@/components/LoanProductIcon";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -15,8 +15,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { formatXAF } from "@/lib/format";
-import type { LoanProduct } from "@shared/schema";
-import { ArrowRight, CheckCircle2, Loader2, ExternalLink } from "lucide-react";
+import type { Loan, LoanProduct } from "@shared/schema";
+import { ArrowRight, CheckCircle2, Clock, Loader2, ExternalLink } from "lucide-react";
 import { useUser } from "@/hooks/use-user";
 
 export default function Loans() {
@@ -91,70 +91,217 @@ export default function Loans() {
   );
 }
 
-function KycGate({ kycStatus, kycLink, onClose }: {
+function CountdownTimer({ seconds }: { seconds: number }) {
+  const [remaining, setRemaining] = useState(seconds);
+  const ref = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    setRemaining(seconds);
+    ref.current = setInterval(() => {
+      setRemaining((s) => {
+        if (s <= 1) {
+          clearInterval(ref.current!);
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(ref.current!);
+  }, [seconds]);
+
+  const mins = Math.floor(remaining / 60);
+  const secs = remaining % 60;
+  const pct = (remaining / seconds) * 100;
+
+  return (
+    <div className="w-full mt-4">
+      <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+        <span>Estimated review time</span>
+        <span className="font-bold tabular-nums text-foreground">
+          {mins}:{secs.toString().padStart(2, "0")}
+        </span>
+      </div>
+      <div className="h-2 bg-muted rounded-full overflow-hidden">
+        <div
+          className="h-full bg-primary rounded-full transition-all duration-1000"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      {remaining === 0 && (
+        <p className="text-xs text-muted-foreground mt-2 text-center">
+          Taking a little longer than expected — we'll reach out shortly.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function KycGate({
+  kycStatus,
+  kycLink,
+  pendingLoan,
+  product,
+  amount,
+  termMonths,
+  onIntentSubmitted,
+  onClose,
+}: {
   kycStatus: string;
   kycLink: string | null | undefined;
+  pendingLoan: Loan | null;
+  product: LoanProduct;
+  amount: number;
+  termMonths: number;
+  onIntentSubmitted: () => void;
   onClose: () => void;
 }) {
+  const { toast } = useToast();
+  const submitIntent = useLoanIntent();
+  const [reason, setReason] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
   const hasLink = !!kycLink;
+  const hasPending = !!pendingLoan;
 
   const statusNote =
     kycStatus === "pending"
       ? "Your submission is under review. We'll notify you as soon as it's approved."
       : kycStatus === "rejected"
       ? "Your previous submission wasn't approved. Please resubmit to continue."
-      : "One-time verification required to access any loan product.";
+      : "Complete this one-time verification to access your loan.";
+
+  const handleSubmitReason = async () => {
+    if (reason.trim().length < 3) {
+      toast({ variant: "destructive", title: "Please describe why you need this loan" });
+      return;
+    }
+    try {
+      await submitIntent.mutateAsync({
+        productId: product.id,
+        principal: amount,
+        termMonths,
+        reason: reason.trim(),
+      });
+      setSubmitted(true);
+      onIntentSubmitted();
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Could not submit application",
+        description: err?.message ?? "Please try again",
+      });
+    }
+  };
+
+  if (hasLink) {
+    return (
+      <div className="flex flex-col items-center px-6 pb-8 pt-2 text-center">
+        <img
+          src="/KYC.png"
+          alt="Identity verification illustration"
+          className="w-48 h-48 object-contain"
+        />
+        <h2 className="text-xl font-bold text-foreground mt-1">Identity verification needed</h2>
+        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xs">
+          Before we disburse your loan, we need to verify your identity. It only takes a few minutes.
+        </p>
+        <p className="text-xs text-muted-foreground mt-3 bg-muted rounded-xl px-4 py-3 w-full text-left">
+          {statusNote}
+        </p>
+        <a
+          href={kycLink!}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-5 flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground rounded-xl py-3.5 font-semibold text-sm"
+        >
+          <ExternalLink className="w-4 h-4" />
+          {kycStatus === "rejected" ? "Resubmit KYC" : "Start Verification"}
+        </a>
+        <button onClick={onClose} className="mt-3 text-sm text-muted-foreground py-1.5">
+          I'll do this later
+        </button>
+      </div>
+    );
+  }
+
+  if (submitted || hasPending) {
+    const initSeconds = (() => {
+      if (pendingLoan?.appliedAt) {
+        const elapsed = Math.floor((Date.now() - new Date(pendingLoan.appliedAt).getTime()) / 1000);
+        return Math.max(0, 600 - elapsed);
+      }
+      return 600;
+    })();
+
+    return (
+      <div className="flex flex-col items-center px-6 pb-8 pt-2 text-center">
+        <img
+          src="/KYC.png"
+          alt="Application pending illustration"
+          className="w-48 h-48 object-contain"
+        />
+        <h2 className="text-xl font-bold text-foreground mt-1">Application submitted!</h2>
+        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xs">
+          We've received your request and our team is reviewing it. This usually takes about 10 minutes.
+        </p>
+        <div className="w-full mt-3 bg-muted rounded-xl px-4 py-3 text-left">
+          <div className="flex items-center gap-2 mb-1">
+            <Clock className="w-4 h-4 text-primary shrink-0" />
+            <span className="text-xs font-semibold text-foreground">Review in progress</span>
+          </div>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            We'll send you an email with next steps as soon as your application is processed. You can check the status under <span className="font-medium text-foreground">My Loans</span>.
+          </p>
+          <CountdownTimer seconds={initSeconds} />
+        </div>
+        <button onClick={onClose} className="mt-5 w-full bg-primary text-primary-foreground rounded-xl py-3.5 font-semibold text-sm">
+          Got it
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col items-center px-6 pb-8 pt-2 text-center">
-      <img
-        src="/KYC.png"
-        alt="Identity verification illustration"
-        className="w-52 h-52 object-contain"
+    <div className="flex flex-col px-6 pb-8 pt-2">
+      <div className="flex flex-col items-center text-center mb-5">
+        <img
+          src="/KYC.png"
+          alt="Loan application illustration"
+          className="w-40 h-40 object-contain"
+        />
+        <h2 className="text-xl font-bold text-foreground mt-1">One last step</h2>
+        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xs">
+          Tell us briefly why you need this loan. Our team will review your request within <span className="font-semibold text-foreground">10 minutes</span>.
+        </p>
+      </div>
+
+      <label className="text-xs font-semibold text-foreground mb-1.5">
+        Why do you need this loan?
+      </label>
+      <Textarea
+        data-testid="input-loan-reason"
+        rows={4}
+        placeholder="e.g. I need to pay school fees for my child before the deadline next week…"
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        className="resize-none"
       />
-
-      <h2 className="text-xl font-bold text-foreground mt-1">You're eligible!</h2>
-
-      <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xs">
-        {hasLink
-          ? "Before we disburse your loan we need to verify your identity. It only takes a few minutes."
-          : "Great news — you qualify for this loan. We just need to verify your identity first."}
+      <p className="text-[11px] text-muted-foreground mt-1">
+        {reason.length}/500 characters
       </p>
 
-      {hasLink ? (
-        <>
-          <p className="text-xs text-muted-foreground mt-3 bg-muted rounded-xl px-4 py-3 w-full text-left">
-            {statusNote}
-          </p>
-
-          <a
-            href={kycLink!}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-5 flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground rounded-xl py-3.5 font-semibold text-sm"
-          >
-            <ExternalLink className="w-4 h-4" />
-            {kycStatus === "rejected" ? "Resubmit KYC" : "Start Verification"}
-          </a>
-
-          <button onClick={onClose} className="mt-3 text-sm text-muted-foreground py-1.5">
-            I'll do this later
-          </button>
-        </>
-      ) : (
-        <>
-          <p className="text-xs text-muted-foreground mt-3 bg-muted rounded-xl px-4 py-3 w-full text-left leading-relaxed">
-            One of our agents will contact you via <span className="font-medium text-foreground">WhatsApp</span> or <span className="font-medium text-foreground">email</span> with a personal verification link. This usually happens within a few hours.
-          </p>
-
-          <button
-            onClick={onClose}
-            className="mt-5 w-full bg-primary text-primary-foreground rounded-xl py-3.5 font-semibold text-sm"
-          >
-            Got it
-          </button>
-        </>
-      )}
+      <Button
+        data-testid="button-submit-intent"
+        onClick={handleSubmitReason}
+        disabled={submitIntent.isPending || reason.trim().length < 3}
+        className="mt-4 w-full"
+      >
+        {submitIntent.isPending && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+        Submit application
+      </Button>
+      <button onClick={onClose} className="mt-3 text-sm text-muted-foreground py-1.5 text-center w-full">
+        Cancel
+      </button>
     </div>
   );
 }
@@ -167,6 +314,7 @@ function ApplySheet({
   onClose: () => void;
 }) {
   const { user } = useUser();
+  const { data: loans } = useLoans();
   const { mutateAsync, isPending } = useApplyLoan();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -174,6 +322,7 @@ function ApplySheet({
   const [term, setTerm] = useState(1);
   const [purpose, setPurpose] = useState("");
   const [success, setSuccess] = useState(false);
+  const [intentDone, setIntentDone] = useState(false);
 
   useEffect(() => {
     if (product) {
@@ -183,6 +332,7 @@ function ApplySheet({
       setTerm(product.minTermMonths);
       setPurpose("");
       setSuccess(false);
+      setIntentDone(false);
     }
   }, [product]);
 
@@ -200,6 +350,7 @@ function ApplySheet({
   const max = Number(product.maxAmount);
 
   const kycVerified = user?.kycStatus === "verified";
+  const pendingLoan = loans?.find((l) => l.status === "pending") ?? null;
 
   const handleApply = async () => {
     try {
@@ -228,11 +379,18 @@ function ApplySheet({
         <div className="w-10 h-1 bg-border rounded-full mx-auto mt-3 shrink-0" />
 
         {!kycVerified ? (
-          <KycGate
-            kycStatus={user?.kycStatus ?? "not_submitted"}
-            kycLink={user?.kycLink}
-            onClose={onClose}
-          />
+          <div className="overflow-y-auto flex-1">
+            <KycGate
+              kycStatus={user?.kycStatus ?? "not_submitted"}
+              kycLink={user?.kycLink}
+              pendingLoan={pendingLoan}
+              product={product}
+              amount={amount}
+              termMonths={term}
+              onIntentSubmitted={() => setIntentDone(true)}
+              onClose={onClose}
+            />
+          </div>
         ) : success ? (
           <div className="p-6 text-center space-y-4 overflow-y-auto">
             <div className="w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">

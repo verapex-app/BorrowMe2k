@@ -51,6 +51,29 @@ export function useApplyLoan() {
   });
 }
 
+export function useLoanIntent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      productId: number;
+      principal: number;
+      termMonths: number;
+      reason: string;
+    }) => {
+      const res = await apiRequest("POST", "/api/loan-intent", input);
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        throw new Error((json as any).message ?? "Failed to submit application");
+      }
+      return (await res.json()) as Loan;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [api.loans.list.path] });
+      qc.invalidateQueries({ queryKey: [api.dashboard.getStats.path] });
+    },
+  });
+}
+
 export function useRepayLoan(loanId: number) {
   const qc = useQueryClient();
   return useMutation({
