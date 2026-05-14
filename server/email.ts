@@ -1,18 +1,7 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 
-function createTransporter() {
-  return nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    requireTLS: true,
-    family: 4,
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-  });
-}
+const resend = new Resend(process.env.RESEND_API_KEY);
+const FROM = `BorrowMe2K <onboarding@resend.dev>`;
 
 export async function sendLoanApplicationEmails(opts: {
   applicantEmail: string;
@@ -24,15 +13,11 @@ export async function sendLoanApplicationEmails(opts: {
 }): Promise<void> {
   const { applicantEmail, applicantName, productName, amount, reason, termMonths } = opts;
   const adminEmail = process.env.ADMIN_EMAIL;
-  const from = `"BorrowMe2K" <${process.env.GMAIL_USER}>`;
-
-  const transporter = createTransporter();
-
   const formatted = amount.toLocaleString("fr-CM") + " FCFA";
 
-  await transporter.sendMail({
-    from,
-    to: adminEmail,
+  await resend.emails.send({
+    from: FROM,
+    to: adminEmail!,
     subject: `New Loan Application — ${applicantName}`,
     html: `
       <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:32px;background:#f9fafb;border-radius:12px;">
@@ -54,8 +39,8 @@ export async function sendLoanApplicationEmails(opts: {
     `,
   });
 
-  await transporter.sendMail({
-    from,
+  await resend.emails.send({
+    from: FROM,
     to: applicantEmail,
     subject: "We received your loan application — BorrowMe2K",
     html: `

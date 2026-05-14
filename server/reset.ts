@@ -1,5 +1,8 @@
 import crypto from "crypto";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+const FROM = `BorrowMe2K <onboarding@resend.dev>`;
 
 interface ResetEntry {
   userId: number;
@@ -29,21 +32,9 @@ export function consumeResetToken(token: string): number | null {
 }
 
 export async function sendResetEmail(email: string, resetUrl: string): Promise<void> {
-  const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    requireTLS: true,
-    family: 4,
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-  });
-
   try {
-    await transporter.sendMail({
-      from: `"BorrowMe2K" <${process.env.GMAIL_USER}>`,
+    await resend.emails.send({
+      from: FROM,
       to: email,
       subject: "Reset your BorrowMe2K password",
       html: `
@@ -61,9 +52,6 @@ export async function sendResetEmail(email: string, resetUrl: string): Promise<v
       `,
     });
   } catch (err: any) {
-    if (err.code === "EAUTH" || err.responseCode === 535) {
-      throw new Error("Gmail authentication failed.");
-    }
     throw new Error("Failed to send reset email. Please try again.");
   }
 }

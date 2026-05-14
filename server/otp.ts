@@ -1,4 +1,7 @@
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+const FROM = `BorrowMe2K <onboarding@resend.dev>`;
 
 interface OtpEntry {
   code: string;
@@ -34,21 +37,9 @@ export async function sendOtpEmail(email: string): Promise<string> {
   const code = generateOtp();
   storeOtp(email, code);
 
-  const transporter = nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 587,
-    secure: false,
-    requireTLS: true,
-    family: 4,
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
-    },
-  });
-
   try {
-    await transporter.sendMail({
-      from: `"BorrowMe2K" <${process.env.GMAIL_USER}>`,
+    await resend.emails.send({
+      from: FROM,
       to: email,
       subject: "Your BorrowMe2K verification code",
       html: `
@@ -64,10 +55,7 @@ export async function sendOtpEmail(email: string): Promise<string> {
     });
   } catch (err: any) {
     otpStore.delete(email.toLowerCase());
-    if (err.code === "EAUTH" || err.responseCode === 535) {
-      throw new Error("Gmail authentication failed. Check GMAIL_USER and GMAIL_APP_PASSWORD.");
-    }
-    throw new Error("Failed to send email. Please check the address and try again.");
+    throw new Error("Failed to send verification email. Please check the address and try again.");
   }
 
   return code;
