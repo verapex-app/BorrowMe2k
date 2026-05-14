@@ -13,9 +13,7 @@ import {
 import { db, pool } from "./db";
 import { eq, desc, asc } from "drizzle-orm";
 import session from "express-session";
-import connectPg from "connect-pg-simple";
-
-const PostgresSessionStore = connectPg(session);
+import MemoryStore from "memorystore";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -62,8 +60,9 @@ export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    this.sessionStore = new PostgresSessionStore({
-      pool,
+    const MemStore = MemoryStore(session);
+    this.sessionStore = new MemStore({
+      checkPeriod: 86400000,
     });
   }
 
