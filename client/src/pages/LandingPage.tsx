@@ -577,12 +577,8 @@ export default function LandingPage() {
               <div className="grid sm:grid-cols-3 gap-6">
                 {/* MTN Mobile Money */}
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center hover:bg-white/8 transition-colors">
-                  <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-[#f0a500]/15 border border-[#f0a500]/30 flex items-center justify-center">
-                    <svg viewBox="0 0 48 48" fill="none" className="w-9 h-9" aria-hidden="true">
-                      <rect x="8" y="10" width="32" height="28" rx="6" fill="#f0a500" opacity=".25"/>
-                      <path d="M18 24l3 3 9-9" stroke="#f0a500" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      <circle cx="24" cy="24" r="14" stroke="#f0a500" strokeWidth="1.5" opacity=".5"/>
-                    </svg>
+                  <div className="w-20 h-14 mx-auto mb-4 rounded-2xl bg-white flex items-center justify-center overflow-hidden">
+                    <img src="/mtn_momo.webp" alt="MTN Mobile Money" className="h-12 w-auto object-contain" />
                   </div>
                   <h3 className="font-display font-bold text-white text-base mb-2">MTN Mobile Money</h3>
                   <p className="text-[#95d5b2] text-sm leading-relaxed">
@@ -592,12 +588,8 @@ export default function LandingPage() {
 
                 {/* Orange Money */}
                 <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center hover:bg-white/8 transition-colors">
-                  <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-[#ff6b00]/15 border border-[#ff6b00]/30 flex items-center justify-center">
-                    <svg viewBox="0 0 48 48" fill="none" className="w-9 h-9" aria-hidden="true">
-                      <circle cx="24" cy="24" r="14" fill="#ff6b00" opacity=".2"/>
-                      <circle cx="24" cy="24" r="8" stroke="#ff6b00" strokeWidth="2" opacity=".7"/>
-                      <path d="M24 16v16M16 24h16" stroke="#ff6b00" strokeWidth="2" strokeLinecap="round" opacity=".5"/>
-                    </svg>
+                  <div className="w-20 h-14 mx-auto mb-4 rounded-2xl bg-white flex items-center justify-center overflow-hidden">
+                    <img src="/orange_money.png" alt="Orange Money" className="h-12 w-auto object-contain" />
                   </div>
                   <h3 className="font-display font-bold text-white text-base mb-2">Orange Money</h3>
                   <p className="text-[#95d5b2] text-sm leading-relaxed">
