@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = `BorrowMe2K <onboarding@resend.dev>`;
+const FROM = `BorrowMe2K <no-reply@borrowme2k.com>`;
 
 export async function sendLoanApplicationEmails(opts: {
   applicantEmail: string;

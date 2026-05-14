@@ -178,9 +178,13 @@ export function setupAuth(app: Express) {
     }
     try {
       const token = createResetToken(user.id);
-      const proto = req.headers["x-forwarded-proto"] ?? req.protocol;
-      const host = req.headers["x-forwarded-host"] ?? req.get("host");
-      const resetUrl = `${proto}://${host}/reset-password?token=${token}`;
+      const baseUrl = process.env.APP_URL?.replace(/\/$/, "") ||
+        (() => {
+          const proto = req.headers["x-forwarded-proto"] ?? req.protocol;
+          const host = req.headers["x-forwarded-host"] ?? req.get("host");
+          return `${proto}://${host}`;
+        })();
+      const resetUrl = `${baseUrl}/reset-password?token=${token}`;
       await sendResetEmail(email, resetUrl);
       res.json({ message: "Reset link sent" });
     } catch (err: any) {
