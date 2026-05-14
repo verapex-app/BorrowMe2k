@@ -23,16 +23,18 @@ export default function History() {
   const isLoading = loansLoading || payLoading;
 
   const entries: Entry[] = [
-    ...(loans ?? []).map(
-      (l): Entry => ({
-        id: `loan-${l.id}`,
-        title: `${l.productName} disbursed`,
-        subtitle: l.purpose,
-        date: l.approvedAt ?? l.appliedAt,
-        amount: Number(l.principal),
-        direction: "in",
-      }),
-    ),
+    ...(loans ?? [])
+      .filter((l) => l.status === "active" || l.status === "repaid")
+      .map(
+        (l): Entry => ({
+          id: `loan-${l.id}`,
+          title: `${l.productName} disbursed`,
+          subtitle: l.purpose,
+          date: l.approvedAt ?? l.appliedAt,
+          amount: Number(l.principal),
+          direction: "in",
+        }),
+      ),
     ...(repayments ?? []).map(
       (r): Entry => ({
         id: `repay-${r.id}`,

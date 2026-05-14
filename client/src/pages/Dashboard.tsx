@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useDashboardStats, useLoanProducts, useLoans } from "@/hooks/use-loans";
 import { useUser } from "@/hooks/use-user";
 import { Button } from "@/components/ui/button";
@@ -242,6 +242,53 @@ export default function Dashboard() {
   );
 }
 
+function PendingCountdown({ loan }: { loan: Loan }) {
+  const initSeconds = Math.max(
+    0,
+    600 - Math.floor((Date.now() - new Date(loan.appliedAt).getTime()) / 1000),
+  );
+  const [remaining, setRemaining] = useState(initSeconds);
+  const ref = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    setRemaining(initSeconds);
+    if (initSeconds <= 0) return;
+    ref.current = setInterval(() => {
+      setRemaining((s) => {
+        if (s <= 1) { clearInterval(ref.current!); return 0; }
+        return s - 1;
+      });
+    }, 1000);
+    return () => clearInterval(ref.current!);
+  }, [initSeconds]);
+
+  const mins = Math.floor(remaining / 60);
+  const secs = remaining % 60;
+  const pct = (remaining / 600) * 100;
+
+  return (
+    <div className="w-full mt-3">
+      <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+        <span>Estimated review time</span>
+        <span className="font-bold tabular-nums text-foreground">
+          {mins}:{secs.toString().padStart(2, "0")}
+        </span>
+      </div>
+      <div className="h-2 bg-background rounded-full overflow-hidden">
+        <div
+          className="h-full bg-primary rounded-full transition-all duration-1000"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      {remaining === 0 && (
+        <p className="text-xs text-muted-foreground mt-2 text-center">
+          Taking a little longer than expected — we'll reach out shortly.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function PendingKycSheet({
   loan,
   user,
@@ -295,15 +342,20 @@ function PendingKycSheet({
             <>
               <h2 className="text-xl font-bold text-foreground mt-1">Application under review</h2>
               <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xs">
-                Your <span className="font-semibold text-foreground">{loan.productName}</span> application is being processed by our team. We'll email you with the next steps within 10 minutes.
+                Your <span className="font-semibold text-foreground">{loan.productName}</span> application is being processed. We'll email you with the next steps.
               </p>
               <div className="w-full mt-3 bg-muted rounded-xl px-4 py-3 text-left">
-                <p className="text-xs text-muted-foreground">
-                  <span className="font-semibold text-foreground">Application for:</span> {formatXAF(loan.principal)}
+                <div className="flex items-center gap-2 mb-1">
+                  <Clock className="w-4 h-4 text-primary shrink-0" />
+                  <span className="text-xs font-semibold text-foreground">Review in progress</span>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Amount: <span className="font-semibold text-foreground">{formatXAF(loan.principal)}</span>
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  <span className="font-semibold text-foreground">Reason:</span> {loan.purpose}
+                <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+                  Reason: {loan.purpose}
                 </p>
+                <PendingCountdown loan={loan} />
               </div>
               <button onClick={onClose} className="mt-5 w-full bg-primary text-primary-foreground rounded-xl py-3.5 font-semibold text-sm">
                 Got it

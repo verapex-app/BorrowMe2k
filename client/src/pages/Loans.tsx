@@ -111,7 +111,7 @@ function CountdownTimer({ seconds }: { seconds: number }) {
 
   const mins = Math.floor(remaining / 60);
   const secs = remaining % 60;
-  const pct = (remaining / seconds) * 100;
+  const pct = (remaining / 600) * 100;
 
   return (
     <div className="w-full mt-4">
