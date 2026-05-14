@@ -41,7 +41,7 @@ export interface IStorage {
   // Admin methods
   listAllUsers(): Promise<User[]>;
   updateUser(id: number, patch: Partial<User>): Promise<User>;
-  listAllLoans(): Promise<Loan[]>;
+  listAllLoans(): Promise<(Loan & { applicantName: string; applicantPhone: string })[]>;
   listAllRepayments(): Promise<Repayment[]>;
   getPlatformStats(): Promise<{
     totalUsers: number;
@@ -212,8 +212,21 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async listAllLoans(): Promise<Loan[]> {
-    return await db.select().from(loans).orderBy(desc(loans.appliedAt));
+  async listAllLoans(): Promise<(Loan & { applicantName: string; applicantPhone: string })[]> {
+    const rows = await db
+      .select({
+        loan: loans,
+        applicantName: users.fullName,
+        applicantPhone: users.phone,
+      })
+      .from(loans)
+      .leftJoin(users, eq(loans.userId, users.id))
+      .orderBy(desc(loans.appliedAt));
+    return rows.map((r) => ({
+      ...r.loan,
+      applicantName: r.applicantName ?? "Unknown",
+      applicantPhone: r.applicantPhone ?? "",
+    }));
   }
 
   async listAllRepayments(): Promise<Repayment[]> {

@@ -6,6 +6,8 @@ import { ChevronDown } from "lucide-react";
 type Loan = {
   id: number;
   userId: number;
+  applicantName: string;
+  applicantPhone: string;
   productName: string;
   principal: string;
   interestRate: string;
@@ -89,8 +91,11 @@ export default function Loans() {
             <div key={loan.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
               <div className="flex items-start justify-between mb-2">
                 <div>
-                  <p className="font-semibold text-gray-900 text-sm">{loan.productName}</p>
-                  <p className="text-xs text-gray-500">User #{loan.userId} · {loan.termMonths}mo · {loan.purpose}</p>
+                  <p className="font-semibold text-gray-900 text-sm">{loan.applicantName}</p>
+                  <p className="text-xs text-gray-500">{loan.applicantPhone} · {loan.productName} · {loan.termMonths}mo</p>
+                  {loan.purpose && (
+                    <p className="text-xs text-gray-400 italic mt-0.5">"{loan.purpose}"</p>
+                  )}
                 </div>
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[loan.status]}`}>
                   {loan.status}
