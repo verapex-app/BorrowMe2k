@@ -59,10 +59,6 @@ type Step4Data = z.infer<typeof step4Schema>;
 export default function AuthPage() {
   const [, setLocation] = useLocation();
   const { user, login, register } = useUser();
-  const defaultTab =
-    new URLSearchParams(window.location.search).get("tab") === "signup"
-      ? "register"
-      : "login";
 
   if (user) {
     setLocation("/");
@@ -71,51 +67,38 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/10 p-4">
-      <div className="w-full max-w-md">
-        <a
-          href="/"
-          className="flex items-center gap-2 mb-6 text-sm text-muted-foreground hover:text-foreground transition-colors w-fit"
-          aria-label="Back to home"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to home
-        </a>
-        <Card className="border-border/60 shadow-xl">
-          <CardHeader className="text-center space-y-2 pb-2">
-            <img
-              src="/logo.png"
-              alt="BorrowMe2K — Cameroon instant loan app"
-              className="mx-auto h-20 w-auto object-contain"
-            />
-            <div>
-              <CardTitle className="text-3xl font-extrabold tracking-tight">
-                BorrowMe2K
-              </CardTitle>
-              <CardDescription className="mt-1">
-                Cameroon&apos;s instant loan partner — borrow, build, repay.
-              </CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Tabs defaultValue={defaultTab}>
-              <TabsList className="grid w-full grid-cols-2 mb-4">
-                <TabsTrigger value="login" data-testid="tab-login">Login</TabsTrigger>
-                <TabsTrigger value="register" data-testid="tab-register">Sign Up</TabsTrigger>
-              </TabsList>
-              <TabsContent value="login">
-                <LoginForm onSubmit={login} />
-              </TabsContent>
-              <TabsContent value="register">
-                <RegisterWizard onSubmit={register} />
-              </TabsContent>
-            </Tabs>
-            <p className="text-[11px] text-muted-foreground text-center mt-5">
-              Demo account — username: <span className="font-semibold">demo</span>{" "}
-              · password: <span className="font-semibold">demo1234</span>
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="w-full max-w-md border-border/60 shadow-xl">
+        <CardHeader className="text-center space-y-2 pb-2">
+          <img
+            src="/SIGN_IN.png"
+            alt="Sign in illustration"
+            className="mx-auto w-44 h-44 object-contain"
+          />
+          <div>
+            <CardTitle className="text-3xl font-extrabold tracking-tight">
+              BorrowMe2K
+            </CardTitle>
+            <CardDescription className="mt-1">
+              Cameroon&apos;s instant loan partner — borrow, build, repay.
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="login">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="login">Login</TabsTrigger>
+              <TabsTrigger value="register">Sign Up</TabsTrigger>
+            </TabsList>
+            <TabsContent value="login">
+              <LoginForm onSubmit={login} />
+            </TabsContent>
+            <TabsContent value="register">
+              <RegisterWizard onSubmit={register} />
+            </TabsContent>
+          </Tabs>
+         
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -445,7 +428,7 @@ function RegisterWizard({
                     <Input placeholder="e.g. Awa Tabe" {...field} />
                   </FormControl>
                   <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5 font-medium">
-                    ⚠ Enter your real legal name exactly as it appears on your ID. This will be used for KYC verification.
+                 Enter your real legal name exactly as it appears on your ID. This will be used for KYC verification.
                   </p>
                   <FormMessage />
                 </FormItem>
