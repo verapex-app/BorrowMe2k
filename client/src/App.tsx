@@ -12,12 +12,18 @@ import Profile from "@/pages/Profile";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/AuthPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
+import AdminDashboard from "@/pages/admin/AdminDashboard";
 import { useUser } from "@/hooks/use-user";
 import { Loader2 } from "lucide-react";
 
 function Router() {
   const { user, isLoading } = useUser();
   const [location] = useLocation();
+
+  // Admin route — fully standalone, no user auth needed
+  if (location.startsWith("/admin")) {
+    return <AdminDashboard />;
+  }
 
   const resetMatch = location.match(/^\/reset-password/);
   const resetToken = resetMatch

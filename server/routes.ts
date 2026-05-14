@@ -199,6 +199,86 @@ export async function registerRoutes(
     });
   });
 
+  // ── Admin middleware ──────────────────────────────────────────────────────
+  function requireAdmin(req: any, res: any, next: any) {
+    if (req.session?.isAdmin) return next();
+    return res.status(401).json({ message: "Admin authentication required" });
+  }
+
+  // Admin login
+  app.post("/api/admin/login", (req, res) => {
+    const { username, pin } = req.body as { username: string; pin: string };
+    const validUsername = process.env.ADMIN_USERNAME;
+    const validPin = process.env.ADMIN_PIN;
+    if (!validUsername || !validPin) {
+      return res.status(500).json({ message: "Admin credentials not configured" });
+    }
+    if (username === validUsername && pin === validPin) {
+      (req.session as any).isAdmin = true;
+      return res.json({ ok: true });
+    }
+    return res.status(401).json({ message: "Invalid credentials" });
+  });
+
+  app.post("/api/admin/logout", (req, res) => {
+    (req.session as any).isAdmin = false;
+    res.json({ ok: true });
+  });
+
+  app.get("/api/admin/check", (req, res) => {
+    res.json({ isAdmin: !!(req.session as any)?.isAdmin });
+  });
+
+  // Admin stats
+  app.get("/api/admin/stats", requireAdmin, async (_req, res) => {
+    const stats = await storage.getPlatformStats();
+    res.json(stats);
+  });
+
+  // Admin users
+  app.get("/api/admin/users", requireAdmin, async (_req, res) => {
+    const allUsers = await storage.listAllUsers();
+    const safe = allUsers.map(({ password: _p, ...u }) => u);
+    res.json(safe);
+  });
+
+  app.patch("/api/admin/users/:id", requireAdmin, async (req, res) => {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const allowed = ["kycStatus", "kycLink", "kycNotes", "fullName", "email", "phone", "city"];
+    const patch: Record<string, any> = {};
+    for (const key of allowed) {
+      if (key in req.body) patch[key] = req.body[key];
+    }
+    const updated = await storage.updateUser(id, patch);
+    const { password: _p, ...safe } = updated;
+    res.json(safe);
+  });
+
+  // Admin loans
+  app.get("/api/admin/loans", requireAdmin, async (_req, res) => {
+    const allLoans = await storage.listAllLoans();
+    res.json(allLoans);
+  });
+
+  app.patch("/api/admin/loans/:id", requireAdmin, async (req, res) => {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    const allowed = ["status"];
+    const patch: Record<string, any> = {};
+    for (const key of allowed) {
+      if (key in req.body) patch[key] = req.body[key];
+    }
+    const updated = await storage.updateLoan(id, patch);
+    res.json(updated);
+  });
+
+  // Admin repayments
+  app.get("/api/admin/repayments", requireAdmin, async (_req, res) => {
+    const all = await storage.listAllRepayments();
+    res.json(all);
+  });
+
   await seedDatabase();
   return httpServer;
 }

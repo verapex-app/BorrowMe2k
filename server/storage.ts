@@ -11,7 +11,7 @@ import {
   type Repayment,
 } from "@shared/schema";
 import { db, pool } from "./db";
-import { eq, and, desc, asc } from "drizzle-orm";
+import { eq, desc, asc } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 
@@ -39,6 +39,21 @@ export interface IStorage {
   createRepayment(
     repayment: Omit<Repayment, "id" | "paidAt">,
   ): Promise<Repayment>;
+
+  // Admin methods
+  listAllUsers(): Promise<User[]>;
+  updateUser(id: number, patch: Partial<User>): Promise<User>;
+  listAllLoans(): Promise<Loan[]>;
+  listAllRepayments(): Promise<Repayment[]>;
+  getPlatformStats(): Promise<{
+    totalUsers: number;
+    totalLoans: number;
+    activeLoans: number;
+    totalDisbursed: number;
+    totalRepaid: number;
+    pendingKyc: number;
+    verifiedKyc: number;
+  }>;
 
   sessionStore: session.Store;
 }
@@ -184,6 +199,49 @@ export class DatabaseStorage implements IStorage {
       .values(repayment)
       .returning();
     return created;
+  }
+
+  async listAllUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(asc(users.id));
+  }
+
+  async updateUser(id: number, patch: Partial<User>): Promise<User> {
+    const [updated] = await db
+      .update(users)
+      .set(patch)
+      .where(eq(users.id, id))
+      .returning();
+    return updated;
+  }
+
+  async listAllLoans(): Promise<Loan[]> {
+    return await db.select().from(loans).orderBy(desc(loans.appliedAt));
+  }
+
+  async listAllRepayments(): Promise<Repayment[]> {
+    return await db.select().from(repayments).orderBy(desc(repayments.paidAt));
+  }
+
+  async getPlatformStats() {
+    const allUsers = await db.select().from(users);
+    const allLoans = await db.select().from(loans);
+    const allRepayments = await db.select().from(repayments);
+
+    const activeLoans = allLoans.filter((l) => l.status === "active");
+    const totalDisbursed = allLoans.reduce((s, l) => s + Number(l.principal), 0);
+    const totalRepaid = allRepayments.reduce((s, r) => s + Number(r.amount), 0);
+    const pendingKyc = allUsers.filter((u) => u.kycStatus === "pending").length;
+    const verifiedKyc = allUsers.filter((u) => u.kycStatus === "verified").length;
+
+    return {
+      totalUsers: allUsers.length,
+      totalLoans: allLoans.length,
+      activeLoans: activeLoans.length,
+      totalDisbursed,
+      totalRepaid,
+      pendingKyc,
+      verifiedKyc,
+    };
   }
 }
 

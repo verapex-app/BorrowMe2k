@@ -10,6 +10,11 @@ export const users = pgTable("users", {
   email: text("email").unique(),
   phone: text("phone").unique(),
   city: text("city").default("Douala"),
+  kycStatus: text("kyc_status", {
+    enum: ["not_submitted", "pending", "verified", "rejected"],
+  }).notNull().default("not_submitted"),
+  kycLink: text("kyc_link"),
+  kycNotes: text("kyc_notes"),
 });
 
 export const loanProducts = pgTable("loan_products", {
