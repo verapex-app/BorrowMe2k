@@ -7,7 +7,7 @@ import {
   Sheet,
   SheetContent,
 } from "@/components/ui/sheet";
-import { Bell, Plus, FileText, ChevronRight, Banknote, ArrowDownToLine, Clock, ExternalLink } from "lucide-react";
+import { Bell, Plus, FileText, ChevronRight, Banknote, ArrowDownToLine, Clock, ExternalLink, ShieldCheck } from "lucide-react";
 import { Link } from "wouter";
 import { LoanProductIcon } from "@/components/LoanProductIcon";
 import { formatXAF, formatDate } from "@/lib/format";
@@ -154,7 +154,7 @@ export default function Dashboard() {
           </button>
         </section>
 
-        <WithdrawBlockedSheet open={withdrawOpen} onClose={() => setWithdrawOpen(false)} />
+        <WithdrawBlockedSheet open={withdrawOpen} onClose={() => setWithdrawOpen(false)} user={user} />
         <PendingKycSheet loan={kycLoan} user={user} onClose={() => setKycLoan(null)} />
 
         {/* Active loan summary */}
@@ -371,10 +371,15 @@ function PendingKycSheet({
 function WithdrawBlockedSheet({
   open,
   onClose,
+  user,
 }: {
   open: boolean;
   onClose: () => void;
+  user: any;
 }) {
+  const kycLink = user?.kycLink as string | null | undefined;
+  const kycStatus = user?.kycStatus as string | undefined;
+
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
@@ -382,27 +387,63 @@ function WithdrawBlockedSheet({
         className="rounded-t-2xl p-0 max-h-[92vh] flex flex-col overflow-hidden"
       >
         <div className="w-10 h-1 bg-border rounded-full mx-auto mt-3 shrink-0" />
-        <div className="flex flex-col items-center px-6 pb-10 pt-2 text-center">
-          <img
-            src="/ERROR.png"
-            alt="Access error illustration"
-            className="w-52 h-52 object-contain"
-          />
-          <h2 className="text-xl font-bold text-foreground mt-1">
-            Withdrawals unavailable
-          </h2>
-          <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xs">
-            You cannot access withdrawals right now. You need to complete your
-            KYC verification before this feature is unlocked.
-          </p>
-          <p className="text-xs text-muted-foreground mt-3 bg-muted rounded-xl px-4 py-3 w-full text-left leading-relaxed">
-            Once your identity is verified, withdrawals will be available
-            instantly. Head to any loan product to start your KYC.
-          </p>
-          <Button className="mt-5 w-full" onClick={onClose}>
-            Got it
-          </Button>
-        </div>
+
+        {kycLink ? (
+          <div className="flex flex-col items-center px-6 pb-10 pt-2 text-center">
+            <img
+              src="/KYC.png"
+              alt="Identity verification illustration"
+              className="w-52 h-52 object-contain"
+            />
+            <h2 className="text-xl font-bold text-foreground mt-1">
+              Identity verification needed
+            </h2>
+            <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xs">
+              Before you can withdraw, we need to verify your identity. It only takes a few minutes.
+            </p>
+            <p className="text-xs text-muted-foreground mt-3 bg-muted rounded-xl px-4 py-3 w-full text-left leading-relaxed">
+              {kycStatus === "pending"
+                ? "Your submission is under review. We'll notify you as soon as it's approved."
+                : kycStatus === "rejected"
+                ? "Your previous submission wasn't approved. Please resubmit to continue."
+                : "Complete this one-time verification to unlock withdrawals."}
+            </p>
+            <a
+              href={kycLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground rounded-xl py-3.5 font-semibold text-sm"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              {kycStatus === "rejected" ? "Resubmit KYC" : "Start Verification"}
+            </a>
+            <button onClick={onClose} className="mt-3 text-sm text-muted-foreground py-1.5">
+              I'll do this later
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center px-6 pb-10 pt-2 text-center">
+            <img
+              src="/ERROR.png"
+              alt="Access error illustration"
+              className="w-52 h-52 object-contain"
+            />
+            <h2 className="text-xl font-bold text-foreground mt-1">
+              Withdrawals unavailable
+            </h2>
+            <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xs">
+              You cannot access withdrawals right now. You need to complete your
+              KYC verification before this feature is unlocked.
+            </p>
+            <p className="text-xs text-muted-foreground mt-3 bg-muted rounded-xl px-4 py-3 w-full text-left leading-relaxed">
+              Once your identity is verified, withdrawals will be available
+              instantly. Head to any loan product to start your KYC.
+            </p>
+            <Button className="mt-5 w-full" onClick={onClose}>
+              Got it
+            </Button>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );
