@@ -16,7 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { formatXAF } from "@/lib/format";
 import type { LoanProduct } from "@shared/schema";
-import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Loader2, ShieldCheck, Clock, ExternalLink, MessageCircle, Mail } from "lucide-react";
+import { useUser } from "@/hooks/use-user";
 
 export default function Loans() {
   const { data: products, isLoading } = useLoanProducts();
@@ -90,6 +91,100 @@ export default function Loans() {
   );
 }
 
+function KycGate({ kycStatus, kycLink, onClose }: {
+  kycStatus: string;
+  kycLink: string | null | undefined;
+  onClose: () => void;
+}) {
+  const hasLink = !!kycLink;
+
+  if (hasLink) {
+    return (
+      <div className="p-6 space-y-5">
+        <div className="flex flex-col items-center text-center space-y-3">
+          <div className="w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+            <ShieldCheck className="w-8 h-8" />
+          </div>
+          <SheetHeader className="space-y-1">
+            <SheetTitle className="text-center">You're eligible!</SheetTitle>
+            <SheetDescription className="text-center">
+              Before we can disburse your loan, we need to verify your identity. Please complete the KYC process using the link below — it only takes a few minutes.
+            </SheetDescription>
+          </SheetHeader>
+        </div>
+
+        <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 flex items-start gap-3">
+          <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <p className="text-sm text-amber-800">
+            {kycStatus === "pending"
+              ? "Your KYC is under review. We'll notify you once it's approved."
+              : kycStatus === "rejected"
+              ? "Your previous KYC was not approved. Please resubmit using the link below."
+              : "Complete your KYC verification to unlock loan access."}
+          </p>
+        </div>
+
+        <a
+          href={kycLink!}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm"
+        >
+          <ExternalLink className="w-4 h-4" />
+          {kycStatus === "rejected" ? "Resubmit KYC" : "Start KYC Verification"}
+        </a>
+
+        <button
+          onClick={onClose}
+          className="w-full text-sm text-muted-foreground py-2"
+        >
+          I'll do this later
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 space-y-5">
+      <div className="flex flex-col items-center text-center space-y-3">
+        <div className="w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+          <ShieldCheck className="w-8 h-8" />
+        </div>
+        <SheetHeader className="space-y-1">
+          <SheetTitle className="text-center">You're eligible!</SheetTitle>
+          <SheetDescription className="text-center">
+            Great news — you qualify for this loan. We just need to verify your identity first.
+          </SheetDescription>
+        </SheetHeader>
+      </div>
+
+      <div className="rounded-xl bg-blue-50 border border-blue-200 p-4 space-y-3">
+        <p className="text-sm text-blue-900 font-medium">We'll reach out to you shortly</p>
+        <p className="text-sm text-blue-800">
+          One of our agents will contact you via WhatsApp or email with the steps to complete your identity verification. This usually happens within a few hours.
+        </p>
+        <div className="flex flex-col gap-2 pt-1">
+          <div className="flex items-center gap-2 text-sm text-blue-700">
+            <MessageCircle className="w-4 h-4 shrink-0" />
+            <span>WhatsApp message with your KYC link</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-blue-700">
+            <Mail className="w-4 h-4 shrink-0" />
+            <span>Or an email with detailed instructions</span>
+          </div>
+        </div>
+      </div>
+
+      <button
+        onClick={onClose}
+        className="w-full text-sm text-muted-foreground py-2"
+      >
+        Got it, close
+      </button>
+    </div>
+  );
+}
+
 function ApplySheet({
   product,
   onClose,
@@ -97,6 +192,7 @@ function ApplySheet({
   product: LoanProduct | null;
   onClose: () => void;
 }) {
+  const { user } = useUser();
   const { mutateAsync, isPending } = useApplyLoan();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -129,6 +225,8 @@ function ApplySheet({
   const min = Number(product.minAmount);
   const max = Number(product.maxAmount);
 
+  const kycVerified = user?.kycStatus === "verified";
+
   const handleApply = async () => {
     try {
       await mutateAsync({
@@ -155,7 +253,13 @@ function ApplySheet({
       >
         <div className="w-10 h-1 bg-border rounded-full mx-auto mt-3 shrink-0" />
 
-        {success ? (
+        {!kycVerified ? (
+          <KycGate
+            kycStatus={user?.kycStatus ?? "not_submitted"}
+            kycLink={user?.kycLink}
+            onClose={onClose}
+          />
+        ) : success ? (
           <div className="p-6 text-center space-y-4 overflow-y-auto">
             <div className="w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-8 h-8" />

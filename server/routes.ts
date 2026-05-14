@@ -36,6 +36,16 @@ export async function registerRoutes(
 
   app.post(api.loans.apply.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
+
+    const applicant = await storage.getUser(req.user.id);
+    if (!applicant || applicant.kycStatus !== "verified") {
+      return res.status(403).json({
+        message: "KYC verification required before applying for a loan.",
+        kycStatus: applicant?.kycStatus ?? "not_submitted",
+        kycLink: applicant?.kycLink ?? null,
+      });
+    }
+
     try {
       const input = api.loans.apply.input.parse(req.body);
       const product = await storage.getLoanProduct(input.productId);
