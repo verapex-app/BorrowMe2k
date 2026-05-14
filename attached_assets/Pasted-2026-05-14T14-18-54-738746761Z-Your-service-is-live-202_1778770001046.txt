@@ -1,0 +1,51 @@
+2026-05-14T14:18:54.738746761Z ==> Your service is live 🎉
+2026-05-14T14:18:54.899470773Z ==> 
+2026-05-14T14:18:54.901258227Z ==> ///////////////////////////////////////////////////////////
+2026-05-14T14:18:54.902576759Z ==> 
+2026-05-14T14:18:54.904132867Z ==> Available at your primary URL https://borrowme2k.onrender.com
+2026-05-14T14:18:54.905765231Z ==> 
+2026-05-14T14:18:54.907984405Z ==> ///////////////////////////////////////////////////////////
+2026-05-14T14:23:58.942408157Z ==> Detected service running on port 10000
+2026-05-14T14:23:59.026988621Z ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+2026-05-14T14:26:49.147752728Z   address: '2607:f8b0:400e:c01::6c',
+2026-05-14T14:26:49.147755868Z   port: 465,
+2026-05-14T14:26:49.147758948Z   command: 'CONN'
+2026-05-14T14:26:49.147762028Z }
+2026-05-14T14:28:50.563530141Z 2:28:50 PM [express] GET /api/user 304 in 63ms
+2026-05-14T14:28:51.098543373Z 2:28:51 PM [express] GET /api/dashboard/stats 200 in 125ms
+2026-05-14T14:28:51.117221382Z 2:28:51 PM [express] GET /api/loan-products 304 in 141ms
+2026-05-14T14:28:51.498975686Z 2:28:51 PM [express] GET /api/loans 200 in 522ms
+2026-05-14T14:29:02.624186111Z 2:29:02 PM [express] POST /api/loan-intent 201 in 329ms
+2026-05-14T14:29:03.840935115Z 2:29:03 PM [express] GET /api/loans 200 in 131ms
+2026-05-14T14:31:02.629528174Z [email] loan-intent notification failed: Error: Connection timeout
+2026-05-14T14:31:02.629555455Z     at zg._formatError (/opt/render/project/src/dist/index.cjs:133:420)
+2026-05-14T14:31:02.629560625Z     at zg._onError (/opt/render/project/src/dist/index.cjs:133:162)
+2026-05-14T14:31:02.629566075Z     at zg._onConnectionError (/opt/render/project/src/dist/index.cjs:130:4604)
+2026-05-14T14:31:02.629570695Z     at Timeout.<anonymous> (/opt/render/project/src/dist/index.cjs:130:4290)
+2026-05-14T14:31:02.629593426Z     at listOnTimeout (node:internal/timers:605:17)
+2026-05-14T14:31:02.629597156Z     at process.processTimers (node:internal/timers:541:7) {
+2026-05-14T14:31:02.629601596Z   code: 'ETIMEDOUT',
+2026-05-14T14:31:02.629603806Z   command: 'CONN'
+2026-05-14T14:31:02.629605926Z }
+2026-05-14T14:38:46.995712772Z 2:38:46 PM [express] GET /api/user 304 in 67ms
+2026-05-14T14:38:47.429487748Z 2:38:47 PM [express] GET /api/loan-products 304 in 132ms
+2026-05-14T14:38:47.90831561Z 2:38:47 PM [express] GET /api/loans 200 in 143ms
+2026-05-14T14:38:49.098364933Z 2:38:49 PM [express] POST /api/logout 200 in 72ms
+2026-05-14T14:41:11.707157504Z 2:41:11 PM [express] POST /api/forgot-password 500 in 120083ms
+2026-05-14T14:43:22.049325322Z ==> Deploying...
+2026-05-14T14:43:22.196477019Z ==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
+2026-05-14T14:43:34.21726918Z ==> Running 'npm run start'
+2026-05-14T14:43:35.208311456Z 
+2026-05-14T14:43:35.208342516Z > rest-express@1.0.0 start
+2026-05-14T14:43:35.208347447Z > NODE_ENV=production node dist/index.cjs
+2026-05-14T14:43:35.208349927Z 
+2026-05-14T14:43:36.950106456Z 2:43:36 PM [express] serving on port 10000
+2026-05-14T14:43:42.996358713Z ==> Your service is live 🎉
+2026-05-14T14:43:43.207355316Z ==> 
+2026-05-14T14:43:43.210046723Z ==> ///////////////////////////////////////////////////////////
+2026-05-14T14:43:43.212161521Z ==> 
+2026-05-14T14:43:43.213971936Z ==> Available at your primary URL https://borrowme2k.onrender.com
+2026-05-14T14:43:43.215976156Z ==> 
+2026-05-14T14:43:43.217915081Z ==> ///////////////////////////////////////////////////////////
+2026-05-14T14:43:54.856219301Z 2:43:54 PM [express] GET /api/user 401 in 1ms
+2026-05-14T14:46:12.454551314Z 2:46:12 PM [express] POST /api/forgot-password 500 in 120073ms
