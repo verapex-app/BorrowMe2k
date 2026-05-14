@@ -4,11 +4,11 @@ import * as schema from "@shared/schema";
 
 const { Pool } = pg;
 
-const connectionString = process.env.NEON_DB || process.env.DATABASE_URL;
-
-if (!connectionString) {
-  throw new Error("NEON_DB (or DATABASE_URL) must be set. Did you forget to provision a database?");
+if (!process.env.NEON_DB) {
+  throw new Error("NEON_DB must be set. Did you forget to provision a database?");
 }
+
+const connectionString = process.env.NEON_DB;
 
 export const pool = new Pool({
   connectionString,
