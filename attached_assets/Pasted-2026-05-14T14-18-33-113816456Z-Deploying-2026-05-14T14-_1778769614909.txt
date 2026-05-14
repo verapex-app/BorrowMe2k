@@ -1,0 +1,58 @@
+2026-05-14T14:18:33.113816456Z ==> Deploying...
+2026-05-14T14:18:33.173887359Z ==> Setting WEB_CONCURRENCY=1 by default, based on available CPUs in the instance
+2026-05-14T14:18:48.512406023Z ==> Running 'npm run start'
+2026-05-14T14:18:49.612433093Z 
+2026-05-14T14:18:49.612468954Z > rest-express@1.0.0 start
+2026-05-14T14:18:49.612478704Z > NODE_ENV=production node dist/index.cjs
+2026-05-14T14:18:49.612482274Z 
+2026-05-14T14:18:51.512360608Z 2:18:51 PM [express] serving on port 10000
+2026-05-14T14:18:54.738746761Z ==> Your service is live 🎉
+2026-05-14T14:18:54.899470773Z ==> 
+2026-05-14T14:18:54.901258227Z ==> ///////////////////////////////////////////////////////////
+2026-05-14T14:18:54.902576759Z ==> 
+2026-05-14T14:18:54.904132867Z ==> Available at your primary URL https://borrowme2k.onrender.com
+2026-05-14T14:18:54.905765231Z ==> 
+2026-05-14T14:18:54.907984405Z ==> ///////////////////////////////////////////////////////////
+2026-05-14T14:23:58.942408157Z ==> Detected service running on port 10000
+2026-05-14T14:23:59.026988621Z ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+2026-05-14T14:24:22.977496362Z 2:24:22 PM [express] GET /api/user 200 in 65ms
+2026-05-14T14:24:24.655360964Z 2:24:24 PM [express] GET /api/user 304 in 69ms
+2026-05-14T14:24:25.903816428Z 2:24:25 PM [express] GET /api/dashboard/stats 200 in 132ms
+2026-05-14T14:24:25.909184921Z 2:24:25 PM [express] GET /api/loan-products 200 in 139ms
+2026-05-14T14:24:26.301859023Z 2:24:26 PM [express] GET /api/loans 200 in 510ms
+2026-05-14T14:24:35.95120005Z 2:24:35 PM [express] GET /api/repayments 200 in 131ms
+2026-05-14T14:24:49.142200958Z 2:24:49 PM [express] POST /api/loan-intent 201 in 366ms
+2026-05-14T14:24:49.754790378Z 2:24:49 PM [express] GET /api/loans 200 in 128ms
+2026-05-14T14:25:49.699492059Z 2:25:49 PM [express] GET /api/dashboard/stats 200 in 572ms
+2026-05-14T14:26:49.147683396Z [email] loan-intent notification failed: Error: connect ENETUNREACH 2607:f8b0:400e:c01::6c:465 - Local (:::0)
+2026-05-14T14:26:49.147719507Z     at internalConnect (node:net:1110:16)
+2026-05-14T14:26:49.147728527Z     at defaultTriggerAsyncIdScope (node:internal/async_hooks:472:18)
+2026-05-14T14:26:49.147734827Z     at node:net:1364:9
+2026-05-14T14:26:49.147739427Z     at process.processTicksAndRejections (node:internal/process/task_queues:85:11) {
+2026-05-14T14:26:49.147742738Z   errno: -101,
+2026-05-14T14:26:49.147746098Z   code: 'ESOCKET',
+2026-05-14T14:26:49.147749258Z   syscall: 'connect',
+2026-05-14T14:26:49.147752728Z   address: '2607:f8b0:400e:c01::6c',
+2026-05-14T14:26:49.147755868Z   port: 465,
+2026-05-14T14:26:49.147758948Z   command: 'CONN'
+2026-05-14T14:26:49.147762028Z }
+2026-05-14T14:28:50.563530141Z 2:28:50 PM [express] GET /api/user 304 in 63ms
+2026-05-14T14:28:51.098543373Z 2:28:51 PM [express] GET /api/dashboard/stats 200 in 125ms
+2026-05-14T14:28:51.117221382Z 2:28:51 PM [express] GET /api/loan-products 304 in 141ms
+2026-05-14T14:28:51.498975686Z 2:28:51 PM [express] GET /api/loans 200 in 522ms
+2026-05-14T14:29:02.624186111Z 2:29:02 PM [express] POST /api/loan-intent 201 in 329ms
+2026-05-14T14:29:03.840935115Z 2:29:03 PM [express] GET /api/loans 200 in 131ms
+2026-05-14T14:31:02.629528174Z [email] loan-intent notification failed: Error: Connection timeout
+2026-05-14T14:31:02.629555455Z     at zg._formatError (/opt/render/project/src/dist/index.cjs:133:420)
+2026-05-14T14:31:02.629560625Z     at zg._onError (/opt/render/project/src/dist/index.cjs:133:162)
+2026-05-14T14:31:02.629566075Z     at zg._onConnectionError (/opt/render/project/src/dist/index.cjs:130:4604)
+2026-05-14T14:31:02.629570695Z     at Timeout.<anonymous> (/opt/render/project/src/dist/index.cjs:130:4290)
+2026-05-14T14:31:02.629593426Z     at listOnTimeout (node:internal/timers:605:17)
+2026-05-14T14:31:02.629597156Z     at process.processTimers (node:internal/timers:541:7) {
+2026-05-14T14:31:02.629601596Z   code: 'ETIMEDOUT',
+2026-05-14T14:31:02.629603806Z   command: 'CONN'
+2026-05-14T14:31:02.629605926Z }
+2026-05-14T14:38:46.995712772Z 2:38:46 PM [express] GET /api/user 304 in 67ms
+2026-05-14T14:38:47.429487748Z 2:38:47 PM [express] GET /api/loan-products 304 in 132ms
+2026-05-14T14:38:47.90831561Z 2:38:47 PM [express] GET /api/loans 200 in 143ms
+2026-05-14T14:38:49.098364933Z 2:38:49 PM [express] POST /api/logout 200 in 72ms

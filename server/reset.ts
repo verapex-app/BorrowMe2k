@@ -30,7 +30,11 @@ export function consumeResetToken(token: string): number | null {
 
 export async function sendResetEmail(email: string, resetUrl: string): Promise<void> {
   const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false,
+    requireTLS: true,
+    family: 4,
     auth: {
       user: process.env.GMAIL_USER,
       pass: process.env.GMAIL_APP_PASSWORD,
