@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { formatXAF } from "@/lib/format";
 import type { LoanProduct } from "@shared/schema";
-import { ArrowRight, CheckCircle2, Loader2, ShieldCheck, Clock, ExternalLink, MessageCircle, Mail } from "lucide-react";
+import { ArrowRight, CheckCircle2, Loader2, ExternalLink } from "lucide-react";
 import { useUser } from "@/hooks/use-user";
 
 export default function Loans() {
@@ -98,89 +98,63 @@ function KycGate({ kycStatus, kycLink, onClose }: {
 }) {
   const hasLink = !!kycLink;
 
-  if (hasLink) {
-    return (
-      <div className="p-6 space-y-5">
-        <div className="flex flex-col items-center text-center space-y-3">
-          <div className="w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-            <ShieldCheck className="w-8 h-8" />
-          </div>
-          <SheetHeader className="space-y-1">
-            <SheetTitle className="text-center">You're eligible!</SheetTitle>
-            <SheetDescription className="text-center">
-              Before we can disburse your loan, we need to verify your identity. Please complete the KYC process using the link below — it only takes a few minutes.
-            </SheetDescription>
-          </SheetHeader>
-        </div>
-
-        <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 flex items-start gap-3">
-          <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-          <p className="text-sm text-amber-800">
-            {kycStatus === "pending"
-              ? "Your KYC is under review. We'll notify you once it's approved."
-              : kycStatus === "rejected"
-              ? "Your previous KYC was not approved. Please resubmit using the link below."
-              : "Complete your KYC verification to unlock loan access."}
-          </p>
-        </div>
-
-        <a
-          href={kycLink!}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground rounded-xl py-3 font-semibold text-sm"
-        >
-          <ExternalLink className="w-4 h-4" />
-          {kycStatus === "rejected" ? "Resubmit KYC" : "Start KYC Verification"}
-        </a>
-
-        <button
-          onClick={onClose}
-          className="w-full text-sm text-muted-foreground py-2"
-        >
-          I'll do this later
-        </button>
-      </div>
-    );
-  }
+  const statusNote =
+    kycStatus === "pending"
+      ? "Your submission is under review. We'll notify you as soon as it's approved."
+      : kycStatus === "rejected"
+      ? "Your previous submission wasn't approved. Please resubmit to continue."
+      : "One-time verification required to access any loan product.";
 
   return (
-    <div className="p-6 space-y-5">
-      <div className="flex flex-col items-center text-center space-y-3">
-        <div className="w-14 h-14 rounded-full bg-primary/10 text-primary flex items-center justify-center">
-          <ShieldCheck className="w-8 h-8" />
-        </div>
-        <SheetHeader className="space-y-1">
-          <SheetTitle className="text-center">You're eligible!</SheetTitle>
-          <SheetDescription className="text-center">
-            Great news — you qualify for this loan. We just need to verify your identity first.
-          </SheetDescription>
-        </SheetHeader>
-      </div>
+    <div className="flex flex-col items-center px-6 pb-8 pt-2 text-center">
+      <img
+        src="/KYC.jpeg"
+        alt="Identity verification illustration"
+        className="w-52 h-52 object-contain"
+      />
 
-      <div className="rounded-xl bg-blue-50 border border-blue-200 p-4 space-y-3">
-        <p className="text-sm text-blue-900 font-medium">We'll reach out to you shortly</p>
-        <p className="text-sm text-blue-800">
-          One of our agents will contact you via WhatsApp or email with the steps to complete your identity verification. This usually happens within a few hours.
-        </p>
-        <div className="flex flex-col gap-2 pt-1">
-          <div className="flex items-center gap-2 text-sm text-blue-700">
-            <MessageCircle className="w-4 h-4 shrink-0" />
-            <span>WhatsApp message with your KYC link</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-blue-700">
-            <Mail className="w-4 h-4 shrink-0" />
-            <span>Or an email with detailed instructions</span>
-          </div>
-        </div>
-      </div>
+      <h2 className="text-xl font-bold text-foreground mt-1">You're eligible!</h2>
 
-      <button
-        onClick={onClose}
-        className="w-full text-sm text-muted-foreground py-2"
-      >
-        Got it, close
-      </button>
+      <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xs">
+        {hasLink
+          ? "Before we disburse your loan we need to verify your identity. It only takes a few minutes."
+          : "Great news — you qualify for this loan. We just need to verify your identity first."}
+      </p>
+
+      {hasLink ? (
+        <>
+          <p className="text-xs text-muted-foreground mt-3 bg-muted rounded-xl px-4 py-3 w-full text-left">
+            {statusNote}
+          </p>
+
+          <a
+            href={kycLink!}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-5 flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground rounded-xl py-3.5 font-semibold text-sm"
+          >
+            <ExternalLink className="w-4 h-4" />
+            {kycStatus === "rejected" ? "Resubmit KYC" : "Start Verification"}
+          </a>
+
+          <button onClick={onClose} className="mt-3 text-sm text-muted-foreground py-1.5">
+            I'll do this later
+          </button>
+        </>
+      ) : (
+        <>
+          <p className="text-xs text-muted-foreground mt-3 bg-muted rounded-xl px-4 py-3 w-full text-left leading-relaxed">
+            One of our agents will contact you via <span className="font-medium text-foreground">WhatsApp</span> or <span className="font-medium text-foreground">email</span> with a personal verification link. This usually happens within a few hours.
+          </p>
+
+          <button
+            onClick={onClose}
+            className="mt-5 w-full bg-primary text-primary-foreground rounded-xl py-3.5 font-semibold text-sm"
+          >
+            Got it
+          </button>
+        </>
+      )}
     </div>
   );
 }
