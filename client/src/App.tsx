@@ -11,6 +11,7 @@ import History from "@/pages/History";
 import Profile from "@/pages/Profile";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/AuthPage";
+import LandingPage from "@/pages/LandingPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import { useUser } from "@/hooks/use-user";
@@ -34,6 +35,16 @@ function Router() {
     return <ResetPasswordPage token={resetToken} />;
   }
 
+  // Auth page — always accessible at /auth
+  if (location.startsWith("/auth")) {
+    if (user) {
+      // already logged in, send to dashboard
+      window.location.replace("/");
+      return null;
+    }
+    return <AuthPage />;
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -42,8 +53,9 @@ function Router() {
     );
   }
 
+  // Not logged in — show landing page at /
   if (!user) {
-    return <AuthPage />;
+    return <LandingPage />;
   }
 
   return (
