@@ -1,0 +1,300 @@
+deploy
+13:14:23.000
+Setting up Build environment
+13:14:24.000
+Pulling from library/node
+13:14:24.000
+Status: Image is up to date for node:22-alpine
+13:14:26.000
+( 1/55) Installing ncurses-terminfo-base (6.5_p20251123-r0)
+13:14:26.000
+( 2/55) Installing libncursesw (6.5_p20251123-r0)
+13:14:26.000
+( 3/55) Installing readline (8.3.1-r0)
+13:14:27.000
+( 4/55) Installing bash (5.3.3-r1)
+13:14:27.000
+Executing bash-5.3.3-r1.post-install
+13:14:27.000
+( 5/55) Installing brotli-libs (1.2.0-r0)
+13:14:27.000
+( 6/55) Installing c-ares (1.34.6-r0)
+13:14:27.000
+( 7/55) Installing libunistring (1.4.1-r0)
+13:14:27.000
+( 8/55) Installing libidn2 (2.3.8-r0)
+13:14:27.000
+( 9/55) Installing nghttp2-libs (1.69.0-r0)
+13:14:27.000
+(10/55) Installing nghttp3 (1.13.1-r0)
+13:14:27.000
+(11/55) Installing libpsl (0.21.5-r3)
+13:14:27.000
+(12/55) Installing zstd-libs (1.5.7-r2)
+13:14:27.000
+(13/55) Installing libcurl (8.17.0-r1)
+13:14:27.000
+(14/55) Installing curl (8.17.0-r1)
+13:14:27.000
+(15/55) Installing dos2unix (7.5.3-r0)
+13:14:27.000
+(16/55) Installing libstdc++-dev (15.2.0-r2)
+13:14:27.000
+(17/55) Installing jansson (2.14.1-r0)
+13:14:27.000
+(18/55) Installing binutils (2.45.1-r0)
+13:14:27.000
+(19/55) Installing libgomp (15.2.0-r2)
+13:14:27.000
+(20/55) Installing libatomic (15.2.0-r2)
+13:14:27.000
+(21/55) Installing gmp (6.3.0-r4)
+13:14:27.000
+(22/55) Installing isl26 (0.26-r1)
+13:14:28.000
+(23/55) Installing mpfr4 (4.2.2-r0)
+13:14:28.000
+(24/55) Installing mpc1 (1.3.1-r1)
+13:14:28.000
+(25/55) Installing gcc (15.2.0-r2)
+13:14:29.000
+(26/55) Installing musl-dev (1.2.5-r23)
+13:14:30.000
+(27/55) Installing g++ (15.2.0-r2)
+13:14:30.000
+(28/55) Installing libexpat (2.7.5-r0)
+13:14:30.000
+(29/55) Installing pcre2 (10.47-r0)
+13:14:30.000
+(30/55) Installing git (2.52.0-r0)
+13:14:31.000
+(31/55) Installing git-init-template (2.52.0-r0)
+13:14:31.000
+(32/55) Installing oniguruma (6.9.10-r0)
+13:14:31.000
+(33/55) Installing jq (1.8.1-r0)
+13:14:31.000
+(34/55) Installing linux-headers (6.16.12-r0)
+13:14:31.000
+(35/55) Installing make (4.4.1-r3)
+13:14:31.000
+(36/55) Installing openssh-keygen (10.2_p1-r0)
+13:14:31.000
+(37/55) Installing libedit (20251016.3.1-r0)
+13:14:31.000
+(38/55) Installing openssh-client-common (10.2_p1-r0)
+13:14:31.000
+(39/55) Installing openssh-client-default (10.2_p1-r0)
+13:14:31.000
+(40/55) Installing openssh-sftp-server (10.2_p1-r0)
+13:14:31.000
+(41/55) Installing openssh-server-common (10.2_p1-r0)
+13:14:31.000
+(42/55) Installing openssh-server (10.2_p1-r0)
+13:14:31.000
+(43/55) Installing openssh (10.2_p1-r0)
+13:14:31.000
+(44/55) Installing openssl (3.5.6-r0)
+13:14:31.000
+(45/55) Installing libbz2 (1.0.8-r6)
+13:14:31.000
+(46/55) Installing libffi (3.5.2-r0)
+13:14:31.000
+(47/55) Installing gdbm (1.26-r0)
+13:14:31.000
+(48/55) Installing xz-libs (5.8.3-r0)
+13:14:31.000
+(49/55) Installing mpdecimal (4.0.1-r0)
+13:14:31.000
+(50/55) Installing libpanelw (6.5_p20251123-r0)
+13:14:31.000
+(51/55) Installing sqlite-libs (3.51.2-r0)
+13:14:31.000
+(52/55) Installing python3 (3.12.13-r0)
+13:14:32.000
+(53/55) Installing python3-pycache-pyc0 (3.12.13-r0)
+13:14:32.000
+(54/55) Installing pyc (3.12.13-r0) (55/55) Installing python3-pyc (3.12.13-r0)
+13:14:32.000
+Executing busybox-1.37.0-r30.trigger
+13:14:32.000
+OK: 328.3 MiB in 73 packages
+13:14:43.000
+Cloning repository for node runtime Branch: main
+13:14:43.000
+Using port: 5173
+13:14:43.000
+Cloning into '/app'...
+13:14:44.000
+Repository cloned successfully from https://github.com/verapex-app/BorrowMe2k
+13:14:45.000
+Created new .env file
+13:14:45.000
+Environment variables updated successfully
+13:14:46.000
+Using overridden install command: npm install
+13:15:04.000
+added 490 packages, and audited 491 packages in 18s 78 packages are looking for funding run `npm fund` for details
+13:15:04.000
+11 vulnerabilities (1 low, 3 moderate, 7 high) To address issues that do not require attention, run: npm audit fix To address all issues (including breaking changes), run: npm audit fix --force Run `npm audit` for details.
+13:15:04.000
+npm notice npm notice New major version of npm available! 10.9.7 -> 11.14.1 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.14.1 npm notice To update run: npm install -g npm@11.14.1 npm notice
+13:15:21.000
+Using overridden build command: npm run build
+13:15:22.000
+> rest-express@1.0.0 build > node_modules/.bin/tsx script/build.ts
+13:15:23.000
+building client...
+13:15:23.000
+vite v7.3.0 building client environment for production...
+13:15:24.000
+transforming...
+13:15:25.000
+Browserslist: browsers data (caniuse-lite) is 7 months old. Please run: npx update-browserslist-db@latest Why you should do it regularly: https://github.com/browserslist/update-db#readme
+13:15:32.000
+✓ 2204 modules transformed.
+13:15:33.000
+rendering chunks...
+13:15:33.000
+computing gzip size...
+13:15:33.000
+../dist/public/index.html 5.84 kB │ gzip: 1.86 kB ../dist/public/assets/index-CdHEQwvl.css 83.49 kB │ gzip: 13.71 kB ../dist/public/assets/index-DELmfu8a.js 689.81 kB │ gzip: 209.52 kB
+13:15:33.000
+(!) Some chunks are larger than 500 kB after minification. Consider: - Using dynamic import() to code-split the application - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+13:15:33.000
+✓ built in 9.50s
+13:15:33.000
+building server...
+13:15:33.000
+▲ [WARNING] "import.meta" is not available with the "cjs" output format and will be empty [empty-import-meta] vite.config.ts:24:24: 24 │ "@": path.resolve(import.meta.dirname, "client", "src"), ╵ ~~~~~~~~~~~ You need to set the output format to "esm" for "import.meta" to work correctly. ▲ [WARNING] "import.meta" is not available with the "cjs" output format and will be empty [empty-import-meta] vite.config.ts:25:30: 25 │ "@shared": path.resolve(import.meta.dirname, "shared"), ╵ ~~~~~~~~~~~ You need to set the output format to "esm" for "import.meta" to work correctly. ▲ [WARNING] "import.meta" is not available with the "cjs" output format and will be empty [empty-import-meta] vite.config.ts:26:30: 26 │ ... "@assets": path.resolve(import.meta.dirname, "attached_assets"), ╵ ~~~~~~~~~~~ You need to set the output format to "esm" for "import.meta" to work correctly. ▲ [WARNING] "import.meta" is not available with the "cjs" output format and will be empty [empty-import-meta] vite.config.ts:29:21: 29 │ root: path.resolve(import.meta.dirname, "client"), ╵ ~~~~~~~~~~~ You need to set the output format to "esm" for "import.meta" to work correctly. ▲ [WARNING] "import.meta" is not available with the "cjs" output format and will be empty [empty-import-meta] vite.config.ts:31:25: 31 │ outDir: path.resolve(import.meta.dirname, "dist/public"), ╵ ~~~~~~~~~~~ You need to set the output format to "esm" for "import.meta" to work correctly.
+13:15:33.000
+5 warnings dist/index.cjs 1.3mb ⚠️ ⚡ Done in 143ms
+13:15:34.000
+=== Cleaning up development dependencies ===
+13:15:37.000
+up to date, audited 382 packages in 3s
+13:15:37.000
+63 packages are looking for funding run `npm fund` for details
+13:15:37.000
+9 vulnerabilities (1 low, 3 moderate, 5 high) To address issues that do not require attention, run: npm audit fix To address all issues (including breaking changes), run: npm audit fix --force Run `npm audit` for details.
+13:15:37.000
+=== Removing build caches ===
+13:15:37.000
+=== Clearing package manager caches ===
+13:15:39.000
+Pulling from library/node
+13:15:39.000
+Status: Image is up to date for node:22-alpine
+13:15:40.000
+( 1/30) Installing ncurses-terminfo-base (6.5_p20251123-r0)
+13:15:40.000
+( 2/30) Installing libncursesw (6.5_p20251123-r0)
+13:15:40.000
+( 3/30) Installing readline (8.3.1-r0)
+13:15:40.000
+( 4/30) Installing bash (5.3.3-r1)
+13:15:41.000
+Executing bash-5.3.3-r1.post-install
+13:15:41.000
+( 5/30) Installing brotli-libs (1.2.0-r0)
+13:15:41.000
+( 6/30) Installing c-ares (1.34.6-r0)
+13:15:41.000
+( 7/30) Installing libunistring (1.4.1-r0)
+13:15:41.000
+( 8/30) Installing libidn2 (2.3.8-r0)
+13:15:41.000
+( 9/30) Installing nghttp2-libs (1.69.0-r0)
+13:15:41.000
+(10/30) Installing nghttp3 (1.13.1-r0)
+13:15:41.000
+(11/30) Installing libpsl (0.21.5-r3)
+13:15:41.000
+(12/30) Installing zstd-libs (1.5.7-r2)
+13:15:41.000
+(13/30) Installing libcurl (8.17.0-r1)
+13:15:41.000
+(14/30) Installing curl (8.17.0-r1)
+13:15:41.000
+(15/30) Installing libstdc++-dev (15.2.0-r2)
+13:15:41.000
+(16/30) Installing jansson (2.14.1-r0)
+13:15:41.000
+(17/30) Installing binutils (2.45.1-r0)
+13:15:41.000
+(18/30) Installing libgomp (15.2.0-r2)
+13:15:41.000
+(19/30) Installing libatomic (15.2.0-r2)
+13:15:41.000
+(20/30) Installing gmp (6.3.0-r4)
+13:15:41.000
+(21/30) Installing isl26 (0.26-r1)
+13:15:42.000
+(22/30) Installing mpfr4 (4.2.2-r0)
+13:15:42.000
+(23/30) Installing mpc1 (1.3.1-r1)
+13:15:42.000
+(24/30) Installing gcc (15.2.0-r2)
+13:15:46.000
+(25/30) Installing musl-dev (1.2.5-r23)
+13:15:47.000
+(26/30) Installing g++ (15.2.0-r2)
+13:15:48.000
+(27/30) Installing linux-headers (6.16.12-r0)
+13:15:48.000
+(28/30) Installing make (4.4.1-r3)
+13:15:48.000
+(29/30) Installing openssl (3.5.6-r0)
+13:15:48.000
+(30/30) Installing tzdata (2026b-r0)
+13:15:48.000
+Executing busybox-1.37.0-r30.trigger
+13:15:48.000
+OK: 278.6 MiB in 48 packages
+13:15:59.000
+npm warn deprecated whatwg-encoding@2.0.0: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+13:15:59.000
+added 133 packages in 5s
+13:15:59.000
+38 packages are looking for funding run `npm fund` for details
+13:15:59.000
+npm notice npm notice New major version of npm available! 10.9.7 -> 11.14.1 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.14.1 npm notice To update run: npm install -g npm@11.14.1 npm notice
+13:16:24.000
+Syncing from builder - /app/node_modules ./node_modules
+13:16:25.000
+Syncing from builder - /app/package.json ./package.json
+13:16:25.000
+Syncing from builder - /pxxl/export/. ./
+13:16:25.000
+Syncing from builder - /pxxl /pxxl
+13:16:26.000
+Using port 5173
+13:16:27.000
+Project Build Process Completed
+13:16:45.000
+Project Image Exported Successfully
+13:16:46.000
+Pushing to Production Environment
+13:16:56.000
+Decompiling Project Files Completed
+13:17:14.000
+Project Image Loaded Successfully
+13:17:14.000
+Cleaning Up Temporary Compressed Files
+13:17:15.000
+Listening to Project for Logs
+Runtime Environment Started
+Loading environment variables from .env
+Starting via override: npm run start
+13:17:15.000
+Spinning Up Production Server
+13:17:16.000
+Finalizing Production Environment
+13:17:16.000
+Spinning Up Production Server
+13:17:26.000
+Verifying Container Stability
+13:17:26.000
+localrun_status_ping_down
+13:17:30.000
+Project Health Check Completed
