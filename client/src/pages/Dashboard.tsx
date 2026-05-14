@@ -1,8 +1,13 @@
+import { useState } from "react";
 import { useDashboardStats, useLoanProducts, useLoans } from "@/hooks/use-loans";
 import { useUser } from "@/hooks/use-user";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Bell, Plus, FileText, ChevronRight, Banknote } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+} from "@/components/ui/sheet";
+import { Bell, Plus, FileText, ChevronRight, Banknote, ArrowDownToLine } from "lucide-react";
 import { Link } from "wouter";
 import { LoanProductIcon } from "@/components/LoanProductIcon";
 import { formatXAF, formatDate } from "@/lib/format";
@@ -12,6 +17,7 @@ export default function Dashboard() {
   const { data: stats, isLoading } = useDashboardStats();
   const { data: products } = useLoanProducts();
   const { data: loans } = useLoans();
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
 
   const activeLoan = loans?.find((l) => l.status === "active");
   const featured = (products ?? []).slice(0, 4);
@@ -90,24 +96,34 @@ export default function Dashboard() {
         </section>
 
         {/* Quick actions */}
-        <section className="grid grid-cols-2 gap-3">
-          <Link href="/loans">
-            <button
-              data-testid="button-borrow-now"
-              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-accent text-accent-foreground px-4 py-3 font-semibold shadow-md active:scale-95 transition-transform"
-            >
-              <Plus className="w-4 h-4" /> Borrow now
-            </button>
-          </Link>
-          <Link href="/my-loans">
-            <button
-              data-testid="button-view-my-loans"
-              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-secondary text-secondary-foreground px-4 py-3 font-semibold border border-border active:scale-95 transition-transform"
-            >
-              <FileText className="w-4 h-4" /> My loans
-            </button>
-          </Link>
+        <section className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <Link href="/loans">
+              <button
+                data-testid="button-borrow-now"
+                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-accent text-accent-foreground px-4 py-3 font-semibold shadow-md active:scale-95 transition-transform"
+              >
+                <Plus className="w-4 h-4" /> Borrow now
+              </button>
+            </Link>
+            <Link href="/my-loans">
+              <button
+                data-testid="button-view-my-loans"
+                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-secondary text-secondary-foreground px-4 py-3 font-semibold border border-border active:scale-95 transition-transform"
+              >
+                <FileText className="w-4 h-4" /> My loans
+              </button>
+            </Link>
+          </div>
+          <button
+            onClick={() => setWithdrawOpen(true)}
+            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-secondary text-secondary-foreground px-4 py-3 font-semibold border border-border active:scale-95 transition-transform"
+          >
+            <ArrowDownToLine className="w-4 h-4" /> Withdraw
+          </button>
         </section>
+
+        <WithdrawBlockedSheet open={withdrawOpen} onClose={() => setWithdrawOpen(false)} />
 
         {/* Active loan summary */}
         {activeLoan && (
@@ -191,5 +207,45 @@ export default function Dashboard() {
         </section>
       </main>
     </div>
+  );
+}
+
+function WithdrawBlockedSheet({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent
+        side="bottom"
+        className="rounded-t-2xl p-0 max-h-[92vh] flex flex-col overflow-hidden"
+      >
+        <div className="w-10 h-1 bg-border rounded-full mx-auto mt-3 shrink-0" />
+        <div className="flex flex-col items-center px-6 pb-10 pt-2 text-center">
+          <img
+            src="/ERROR.png"
+            alt="Access error illustration"
+            className="w-52 h-52 object-contain"
+          />
+          <h2 className="text-xl font-bold text-foreground mt-1">
+            Withdrawals unavailable
+          </h2>
+          <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xs">
+            You cannot access withdrawals right now. You need to complete your
+            KYC verification before this feature is unlocked.
+          </p>
+          <p className="text-xs text-muted-foreground mt-3 bg-muted rounded-xl px-4 py-3 w-full text-left leading-relaxed">
+            Once your identity is verified, withdrawals will be available
+            instantly. Head to any loan product to start your KYC.
+          </p>
+          <Button className="mt-5 w-full" onClick={onClose}>
+            Got it
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
