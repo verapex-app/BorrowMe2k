@@ -367,14 +367,16 @@ function RegisterWizard({
   };
 
   const handleSendOtp = async () => {
-    const email = step2Form.getValues("email");
-    const valid = await step2Form.trigger("email");
+    const valid = await step2Form.trigger();
     if (!valid) return;
+    const data = step2Form.getValues();
     setSendingOtp(true);
     try {
-      await postJson("/api/send-otp", { email });
+      await postJson("/api/send-otp", { email: data.email });
+      setCollected((prev) => ({ ...prev, ...data }));
       setOtpSent(true);
-      toast({ title: "Code sent!", description: `Check ${email} for your 4-digit code.` });
+      setStep(3);
+      toast({ title: "Code sent!", description: `Check ${data.email} for your 4-digit code.` });
     } catch (err: any) {
       toast({
         variant: "destructive",
@@ -384,15 +386,6 @@ function RegisterWizard({
     } finally {
       setSendingOtp(false);
     }
-  };
-
-  const handleStep2 = async (data: Step2Data) => {
-    if (!otpSent) {
-      toast({ variant: "destructive", title: "Please send the verification code first" });
-      return;
-    }
-    setCollected((prev) => ({ ...prev, ...data }));
-    setStep(3);
   };
 
   const handleStep3 = async (data: Step3Data) => {
@@ -495,7 +488,7 @@ function RegisterWizard({
 
       {step === 2 && (
         <Form {...step2Form}>
-          <form onSubmit={step2Form.handleSubmit(handleStep2)} className="space-y-4">
+          <form onSubmit={(e) => { e.preventDefault(); handleSendOtp(); }} className="space-y-4">
             <p className="text-sm font-semibold text-foreground mb-1">Contact details</p>
             <FormField
               control={step2Form.control}
@@ -517,43 +510,17 @@ function RegisterWizard({
                 <FormItem>
                   <FormLabel>Email address</FormLabel>
                   <FormControl>
-                    <div className="flex gap-2">
-                      <Input
-                        type="email"
-                        placeholder="you@example.com"
-                        {...field}
-                        onChange={(e) => {
-                          field.onChange(e);
-                          setOtpSent(false);
-                        }}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="shrink-0"
-                        onClick={handleSendOtp}
-                        disabled={sendingOtp}
-                      >
-                        {sendingOtp ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : otpSent ? (
-                          <CheckCircle2 className="w-4 h-4 text-green-500" />
-                        ) : (
-                          <Mail className="w-4 h-4" />
-                        )}
-                        <span className="ml-1 text-xs">
-                          {otpSent ? "Resend" : "Send code"}
-                        </span>
-                      </Button>
-                    </div>
+                    <Input
+                      type="email"
+                      placeholder="you@example.com"
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        setOtpSent(false);
+                      }}
+                    />
                   </FormControl>
                   <FormMessage />
-                  {otpSent && (
-                    <p className="text-xs text-green-600 mt-1">
-                      Code sent — check your inbox.
-                    </p>
-                  )}
                 </FormItem>
               )}
             />
@@ -566,8 +533,13 @@ function RegisterWizard({
               >
                 <ArrowLeft className="w-4 h-4 mr-1" /> Back
               </Button>
-              <Button type="submit" className="flex-1">
-                Continue <ArrowRight className="w-4 h-4 ml-1" />
+              <Button type="submit" className="flex-1" disabled={sendingOtp}>
+                {sendingOtp ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <Mail className="w-4 h-4 mr-2" />
+                )}
+                Send verification code
               </Button>
             </div>
           </form>
