@@ -108,7 +108,7 @@ function KycGate({ kycStatus, kycLink, onClose }: {
   return (
     <div className="flex flex-col items-center px-6 pb-8 pt-2 text-center">
       <img
-        src="/KYC.svg"
+        src="/KYC.png"
         alt="Identity verification illustration"
         className="w-52 h-52 object-contain"
       />

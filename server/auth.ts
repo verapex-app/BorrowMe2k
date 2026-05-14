@@ -15,20 +15,29 @@ declare global {
 }
 
 export function setupAuth(app: Express) {
+  const isProd = process.env.NODE_ENV === "production";
+
+  if (!process.env.SESSION_SECRET && isProd) {
+    throw new Error("SESSION_SECRET must be set in production");
+  }
+
+  if (isProd) {
+    app.set("trust proxy", 1);
+  }
+
   const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || "borrowme-app-secret",
+    secret: process.env.SESSION_SECRET || "borrowme-dev-secret-change-in-production",
     resave: false,
     saveUninitialized: false,
     store: storage.sessionStore,
+    name: "bm.sid",
     cookie: {
-      secure: app.get("env") === "production",
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      secure: isProd,
+      httpOnly: true,
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     },
   };
-
-  if (app.get("env") === "production") {
-    app.set("trust proxy", 1);
-  }
 
   app.use(session(sessionSettings));
   app.use(passport.initialize());
