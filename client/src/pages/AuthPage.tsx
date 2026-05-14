@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Banknote, ArrowLeft, ArrowRight, Mail, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Mail, CheckCircle2, Loader2 } from "lucide-react";
 import { z } from "zod";
 
 
@@ -65,10 +65,12 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/10 p-4">
       <Card className="w-full max-w-md border-border/60 shadow-xl">
-        <CardHeader className="text-center space-y-3">
-          <div className="mx-auto w-14 h-14 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shadow-md shadow-primary/30">
-            <Banknote className="w-7 h-7" />
-          </div>
+        <CardHeader className="text-center space-y-2 pb-2">
+          <img
+            src="/SIGN_IN.png"
+            alt="Sign in illustration"
+            className="mx-auto w-44 h-44 object-contain"
+          />
           <div>
             <CardTitle className="text-3xl font-extrabold tracking-tight">
               BorrowMe
