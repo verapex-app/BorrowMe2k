@@ -406,3 +406,4 @@ async function seedDatabase() {
       await storage.createLoanProduct(p);
     }
   }
+} 
