@@ -37,6 +37,7 @@ export async function sendResetEmail(email: string, resetUrl: string): Promise<v
       from: FROM,
       to: email,
       subject: "Reset your BorrowMe2K password",
+      headers: { "X-Priority": "1", "X-MSMail-Priority": "High", "Importance": "High" },
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;background:#f9fafb;border-radius:12px;">
           <h2 style="color:#1d4ed8;margin-bottom:8px;">BorrowMe2K</h2>

@@ -19,6 +19,7 @@ export async function sendLoanApplicationEmails(opts: {
     from: FROM,
     to: adminEmail!,
     subject: `New Loan Application — ${applicantName}`,
+    headers: { "X-Priority": "1", "X-MSMail-Priority": "High", "Importance": "High" },
     html: `
       <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:32px;background:#f9fafb;border-radius:12px;">
         <h2 style="color:#1d4ed8;margin-bottom:4px;">BorrowMe2K — New Loan Application</h2>
@@ -43,6 +44,7 @@ export async function sendLoanApplicationEmails(opts: {
     from: FROM,
     to: applicantEmail,
     subject: "We received your loan application — BorrowMe2K",
+    headers: { "X-Priority": "1", "X-MSMail-Priority": "High", "Importance": "High" },
     html: `
       <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;background:#f9fafb;border-radius:12px;">
         <h2 style="color:#1d4ed8;margin-bottom:8px;">BorrowMe2K</h2>

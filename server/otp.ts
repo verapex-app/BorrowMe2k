@@ -42,6 +42,7 @@ export async function sendOtpEmail(email: string): Promise<string> {
       from: FROM,
       to: email,
       subject: "Your BorrowMe2K verification code",
+      headers: { "X-Priority": "1", "X-MSMail-Priority": "High", "Importance": "High" },
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;background:#f9fafb;border-radius:12px;">
           <h2 style="color:#1d4ed8;margin-bottom:8px;">BorrowMe2K</h2>
