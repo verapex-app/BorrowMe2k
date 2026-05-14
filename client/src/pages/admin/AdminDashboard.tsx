@@ -51,7 +51,7 @@ export default function AdminDashboard() {
             <ShieldCheck className="w-4 h-4 text-white" />
           </div>
           <div>
-            <p className="font-bold text-sm leading-tight">BorrowMe Admin</p>
+            <p className="font-bold text-sm leading-tight">BorrowMe2K Admin</p>
             <p className="text-gray-400 text-xs leading-tight">Management Portal</p>
           </div>
         </div>

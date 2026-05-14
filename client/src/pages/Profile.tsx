@@ -43,7 +43,7 @@ export default function Profile() {
           <p className="text-sm text-muted-foreground">{user.email}</p>
         )}
         <div className="mt-3 px-3 py-1 bg-primary/10 text-primary text-[10px] font-bold rounded-full uppercase tracking-wider">
-          BorrowMe Member
+          BorrowMe2K Member
         </div>
       </header>
 
@@ -81,7 +81,7 @@ export default function Profile() {
         </Button>
 
         <p className="text-[10px] text-muted-foreground text-center">
-          BorrowMe · Cameroon · Loans subject to review and approval.
+          BorrowMe2K · Cameroon · Loans subject to review and approval.
         </p>
       </div>
     </div>

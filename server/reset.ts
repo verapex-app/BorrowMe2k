@@ -39,12 +39,12 @@ export async function sendResetEmail(email: string, resetUrl: string): Promise<v
 
   try {
     await transporter.sendMail({
-      from: `"BorrowMe" <${process.env.GMAIL_USER}>`,
+      from: `"BorrowMe2K" <${process.env.GMAIL_USER}>`,
       to: email,
-      subject: "Reset your BorrowMe password",
+      subject: "Reset your BorrowMe2K password",
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;background:#f9fafb;border-radius:12px;">
-          <h2 style="color:#1d4ed8;margin-bottom:8px;">BorrowMe</h2>
+          <h2 style="color:#1d4ed8;margin-bottom:8px;">BorrowMe2K</h2>
           <p style="color:#374151;font-size:15px;">We received a request to reset your password.</p>
           <p style="color:#374151;font-size:15px;">Click the button below to choose a new password. This link expires in <strong>1 hour</strong>.</p>
           <div style="text-align:center;margin:32px 0;">

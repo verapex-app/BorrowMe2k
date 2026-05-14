@@ -44,12 +44,12 @@ export async function sendOtpEmail(email: string): Promise<string> {
 
   try {
     await transporter.sendMail({
-      from: `"BorrowMe" <${process.env.GMAIL_USER}>`,
+      from: `"BorrowMe2K" <${process.env.GMAIL_USER}>`,
       to: email,
-      subject: "Your BorrowMe verification code",
+      subject: "Your BorrowMe2K verification code",
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;background:#f9fafb;border-radius:12px;">
-          <h2 style="color:#1d4ed8;margin-bottom:8px;">BorrowMe</h2>
+          <h2 style="color:#1d4ed8;margin-bottom:8px;">BorrowMe2K</h2>
           <p style="color:#374151;font-size:15px;">Your email verification code is:</p>
           <div style="font-size:40px;font-weight:800;letter-spacing:12px;color:#1d4ed8;margin:24px 0;text-align:center;">
             ${code}

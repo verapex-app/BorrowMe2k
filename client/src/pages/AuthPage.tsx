@@ -76,7 +76,7 @@ export default function AuthPage() {
           />
           <div>
             <CardTitle className="text-3xl font-extrabold tracking-tight">
-              BorrowMe
+              BorrowMe2K
             </CardTitle>
             <CardDescription className="mt-1">
               Cameroon&apos;s instant loan partner — borrow, build, repay.
@@ -122,7 +122,7 @@ function LoginForm({
   const handleSubmit = async (data: z.infer<typeof loginSchema>) => {
     try {
       await onSubmit(data as InsertUser);
-      toast({ title: "Welcome back to BorrowMe" });
+      toast({ title: "Welcome back to BorrowMe2K" });
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -410,7 +410,7 @@ function RegisterWizard({
     const payload = { ...collected, ...data } as InsertUser;
     try {
       await onSubmit(payload);
-      toast({ title: "Welcome to BorrowMe!" });
+      toast({ title: "Welcome to BorrowMe2K!" });
     } catch (error: any) {
       toast({
         variant: "destructive",

@@ -406,17 +406,3 @@ async function seedDatabase() {
       await storage.createLoanProduct(p);
     }
   }
-
-  const defaultUser = await storage.getUserByUsername("demo");
-  if (!defaultUser) {
-    const hashedPassword = await bcrypt.hash("demo1234", 10);
-    await storage.createUser({
-      username: "demo",
-      password: hashedPassword,
-      fullName: "Awa Tabe",
-      email: "demo@borrowme.cm",
-      phone: "+237670000000",
-      city: "Douala",
-    });
-  }
-}
