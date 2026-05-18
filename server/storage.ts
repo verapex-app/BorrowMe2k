@@ -319,12 +319,12 @@ export class DatabaseStorage implements IStorage {
 export const storage = new DatabaseStorage();
 
 function buildPersonalizedKycLink(rawLink: string, userId: number): string {
-  const submissionBase = `https://borrowme2k.com/submission?id=${userId}`;
-  try {
-    const url = new URL(rawLink);
-    url.searchParams.set("redirect-uri", submissionBase);
-    return url.toString();
-  } catch {
-    return rawLink.replace(/redirect-uri=[^&]*/i, `redirect-uri=${encodeURIComponent(submissionBase)}`);
+  const newRedirectUri = `https://borrowme2k.com/submission?id=${userId}`;
+  // Replace the existing redirect-uri value (encoded or plain) without re-encoding it
+  if (/redirect-uri=/i.test(rawLink)) {
+    return rawLink.replace(/redirect-uri=[^&]*/i, `redirect-uri=${newRedirectUri}`);
   }
+  // No redirect-uri present — append it
+  const sep = rawLink.includes("?") ? "&" : "?";
+  return `${rawLink}${sep}redirect-uri=${newRedirectUri}`;
 }
