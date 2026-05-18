@@ -10,6 +10,9 @@ export const users = pgTable("users", {
   email: text("email").unique(),
   phone: text("phone").unique(),
   city: text("city").default("Douala"),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  dateOfBirth: text("date_of_birth"),
   kycStatus: text("kyc_status", {
     enum: ["not_submitted", "pending", "verified", "rejected"],
   }).notNull().default("not_submitted"),

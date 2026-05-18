@@ -418,6 +418,22 @@ export async function registerRoutes(
     res.json({ kycLink: link });
   });
 
+  // Save personal profile details before KYC verification
+  app.post("/api/kyc/profile", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const schema = z.object({
+      firstName: z.string().min(1, "First name is required").max(100).transform((v) => v.trim()),
+      lastName: z.string().min(1, "Last name is required").max(100).transform((v) => v.trim()),
+      dateOfBirth: z.string().min(1, "Date of birth is required").regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: parsed.error.errors[0].message });
+    }
+    const updated = await storage.updateUser(req.user.id, parsed.data);
+    res.json(updated);
+  });
+
   // Public — called when user returns from Persona KYC redirect
   app.post("/api/kyc/submitted", async (req, res) => {
     const userId = Number(req.body.userId);

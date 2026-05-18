@@ -16,8 +16,9 @@ import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { formatXAF } from "@/lib/format";
 import type { Loan, LoanProduct } from "@shared/schema";
-import { ArrowRight, CheckCircle2, Clock, Loader2, ExternalLink } from "lucide-react";
+import { ArrowRight, CheckCircle2, Clock, Loader2 } from "lucide-react";
 import { useUser } from "@/hooks/use-user";
+import { KycVerifyFlow } from "@/components/KycVerifyFlow";
 
 export default function Loans() {
   const { data: products, isLoading } = useLoanProducts();
@@ -145,6 +146,7 @@ function KycGate({
   termMonths,
   onIntentSubmitted,
   onClose,
+  user,
 }: {
   kycStatus: string;
   kycLink: string | null | undefined;
@@ -154,6 +156,7 @@ function KycGate({
   termMonths: number;
   onIntentSubmitted: () => void;
   onClose: () => void;
+  user: any;
 }) {
   const { toast } = useToast();
   const submitIntent = useLoanIntent();
@@ -195,32 +198,12 @@ function KycGate({
 
   if (hasLink) {
     return (
-      <div className="flex flex-col items-center px-6 pb-8 pt-2 text-center">
-        <img
-          src="/KYC.png"
-          alt="Identity verification illustration"
-          className="w-48 h-48 object-contain"
-        />
-        <h2 className="text-xl font-bold text-foreground mt-1">Identity verification needed</h2>
-        <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xs">
-          Before we disburse your loan, we need to verify your identity. It only takes a few minutes.
-        </p>
-        <p className="text-xs text-muted-foreground mt-3 bg-muted rounded-xl px-4 py-3 w-full text-left">
-          {statusNote}
-        </p>
-        <a
-          href={kycLink!}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-5 flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground rounded-xl py-3.5 font-semibold text-sm"
-        >
-          <ExternalLink className="w-4 h-4" />
-          {kycStatus === "rejected" ? "Resubmit ID" : "Start ID Verification"}
-        </a>
-        <button onClick={onClose} className="mt-3 text-sm text-muted-foreground py-1.5">
-          I'll do this later
-        </button>
-      </div>
+      <KycVerifyFlow
+        user={user}
+        kycLink={kycLink!}
+        kycStatus={kycStatus}
+        onClose={onClose}
+      />
     );
   }
 
@@ -389,6 +372,7 @@ function ApplySheet({
               termMonths={term}
               onIntentSubmitted={() => setIntentDone(true)}
               onClose={onClose}
+              user={user}
             />
           </div>
         ) : success ? (

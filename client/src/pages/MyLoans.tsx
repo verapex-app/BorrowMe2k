@@ -22,8 +22,9 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { formatXAF, formatDate } from "@/lib/format";
 import type { Loan } from "@shared/schema";
-import { CheckCircle2, Clock, ExternalLink, FileText, Loader2 } from "lucide-react";
+import { CheckCircle2, Clock, FileText, Loader2 } from "lucide-react";
 import { Link } from "wouter";
+import { KycVerifyFlow } from "@/components/KycVerifyFlow";
 
 export default function MyLoans() {
   const { data: loans, isLoading } = useLoans();
@@ -270,60 +271,42 @@ function KycSheet({
       >
         <div className="w-10 h-1 bg-border rounded-full mx-auto mt-3 shrink-0" />
 
-        <div className="flex flex-col items-center px-6 pb-8 pt-2 text-center overflow-y-auto">
-          <img
-            src="/KYC.png"
-            alt="Identity verification illustration"
-            className="w-44 h-44 object-contain"
-          />
-
-          {hasLink ? (
-            <>
-              <h2 className="text-xl font-bold text-foreground mt-1">Identity verification needed</h2>
-              <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xs">
-                Your application for <span className="font-semibold text-foreground">{loan.productName}</span> is ready. 
-                Complete your identity verification to receive your funds.
-              </p>
-              <p className="text-xs text-muted-foreground mt-3 bg-muted rounded-xl px-4 py-3 w-full text-left">
-                {statusNote}
-              </p>
-              <a
-                href={user.kycLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                data-testid="link-start-kyc"
-                className="mt-5 flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground rounded-xl py-3.5 font-semibold text-sm"
-              >
-                <ExternalLink className="w-4 h-4" />
-                {kycStatus === "rejected" ? "Resubmit ID" : "Start ID Verification"}
-              </a>
-              <button onClick={onClose} className="mt-3 text-sm text-muted-foreground py-1.5">
-                I'll do this later
-              </button>
-            </>
-          ) : (
-            <>
-              <h2 className="text-xl font-bold text-foreground mt-1">Application under review</h2>
-              <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xs">
-                Your <span className="font-semibold text-foreground">{loan.productName}</span> application for{" "}
-                <span className="font-semibold text-foreground">{formatXAF(loan.principal)}</span> is being reviewed by our team.
-              </p>
-              <div className="w-full mt-3 bg-muted rounded-xl px-4 py-3 text-left">
-                <div className="flex items-center gap-2 mb-1">
-                  <Clock className="w-4 h-4 text-primary shrink-0" />
-                  <span className="text-xs font-semibold text-foreground">Review in progress</span>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  We'll send you an email with your ID verification link as soon as your application is processed.
-                </p>
-                <CountdownTimer loan={loan} />
+        {hasLink ? (
+          <div className="overflow-y-auto">
+            <KycVerifyFlow
+              user={user}
+              kycLink={user.kycLink!}
+              kycStatus={kycStatus}
+              onClose={onClose}
+            />
+          </div>
+        ) : (
+          <div className="flex flex-col items-center px-6 pb-8 pt-2 text-center overflow-y-auto">
+            <img
+              src="/KYC.png"
+              alt="Identity verification illustration"
+              className="w-44 h-44 object-contain"
+            />
+            <h2 className="text-xl font-bold text-foreground mt-1">Application under review</h2>
+            <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xs">
+              Your <span className="font-semibold text-foreground">{loan.productName}</span> application for{" "}
+              <span className="font-semibold text-foreground">{formatXAF(loan.principal)}</span> is being reviewed by our team.
+            </p>
+            <div className="w-full mt-3 bg-muted rounded-xl px-4 py-3 text-left">
+              <div className="flex items-center gap-2 mb-1">
+                <Clock className="w-4 h-4 text-primary shrink-0" />
+                <span className="text-xs font-semibold text-foreground">Review in progress</span>
               </div>
-              <button onClick={onClose} className="mt-5 w-full bg-primary text-primary-foreground rounded-xl py-3.5 font-semibold text-sm">
-                Got it
-              </button>
-            </>
-          )}
-        </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                We'll send you an email with your ID verification link as soon as your application is processed.
+              </p>
+              <CountdownTimer loan={loan} />
+            </div>
+            <button onClick={onClose} className="mt-5 w-full bg-primary text-primary-foreground rounded-xl py-3.5 font-semibold text-sm">
+              Got it
+            </button>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );
