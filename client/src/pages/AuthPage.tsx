@@ -428,7 +428,7 @@ function RegisterWizard({
                     <Input placeholder="e.g. Awa Tabe" {...field} />
                   </FormControl>
                   <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5 font-medium">
-                 Enter your real legal name exactly as it appears on your ID. This will be used for KYC verification.
+                 Enter your real legal name exactly as it appears on your ID. This will be used for identity verification.
                   </p>
                   <FormMessage />
                 </FormItem>

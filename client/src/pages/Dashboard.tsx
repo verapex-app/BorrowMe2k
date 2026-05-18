@@ -118,7 +118,7 @@ export default function Dashboard() {
                     {pendingLoan.productName} · {formatXAF(pendingLoan.principal)}
                   </p>
                   <p className="text-xs text-amber-600 dark:text-amber-500 mt-1 font-medium">
-                    {user?.kycLink ? "Tap to complete your KYC verification →" : "Tap to check status →"}
+                    {user?.kycLink ? "Tap to verify your identity →" : "Tap to check status →"}
                   </p>
                 </div>
               </div>
@@ -313,7 +313,7 @@ function PendingKycSheet({
         <div className="flex flex-col items-center px-6 pb-8 pt-2 text-center overflow-y-auto">
           <img
             src="/KYC.png"
-            alt="KYC verification illustration"
+            alt="Identity verification illustration"
             className="w-44 h-44 object-contain"
           />
 
@@ -322,7 +322,7 @@ function PendingKycSheet({
               <h2 className="text-xl font-bold text-foreground mt-1">Identity verification needed</h2>
               <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xs">
                 Your application for <span className="font-semibold text-foreground">{loan.productName}</span> is ready.
-                Complete your KYC to receive your funds.
+                Verify your identity to receive your funds.
               </p>
               <a
                 href={user.kycLink}
@@ -332,7 +332,7 @@ function PendingKycSheet({
                 className="mt-5 flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground rounded-xl py-3.5 font-semibold text-sm"
               >
                 <ExternalLink className="w-4 h-4" />
-                {kycStatus === "rejected" ? "Resubmit KYC" : "Start Verification"}
+                {kycStatus === "rejected" ? "Resubmit ID" : "Start ID Verification"}
               </a>
               <button onClick={onClose} className="mt-3 text-sm text-muted-foreground py-1.5">
                 I'll do this later
@@ -415,7 +415,7 @@ function WithdrawBlockedSheet({
               className="mt-5 flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground rounded-xl py-3.5 font-semibold text-sm"
             >
               <ShieldCheck className="w-4 h-4" />
-              {kycStatus === "rejected" ? "Resubmit KYC" : "Start Verification"}
+              {kycStatus === "rejected" ? "Resubmit ID" : "Start ID Verification"}
             </a>
             <button onClick={onClose} className="mt-3 text-sm text-muted-foreground py-1.5">
               I'll do this later
@@ -433,11 +433,11 @@ function WithdrawBlockedSheet({
             </h2>
             <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xs">
               You cannot access withdrawals right now. You need to complete your
-              KYC verification before this feature is unlocked.
+              identity verification before this feature is unlocked.
             </p>
             <p className="text-xs text-muted-foreground mt-3 bg-muted rounded-xl px-4 py-3 w-full text-left leading-relaxed">
               Once your identity is verified, withdrawals will be available
-              instantly. Head to any loan product to start your KYC.
+              instantly. Head to any loan product to submit your ID.
             </p>
             <Button className="mt-5 w-full" onClick={onClose}>
               Got it

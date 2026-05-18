@@ -46,7 +46,7 @@ export default function SubmissionPage() {
               </p>
             </div>
             <div className="bg-muted rounded-xl px-4 py-3 text-left text-sm text-muted-foreground leading-relaxed">
-              You'll receive an email notification once your KYC is reviewed. You can check your status in the app under <span className="font-medium text-foreground">Profile</span>.
+              You'll receive an email notification once your ID is reviewed. You can check your status in the app under <span className="font-medium text-foreground">Profile</span>.
             </div>
             <a
               href="/"

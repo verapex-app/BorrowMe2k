@@ -142,11 +142,11 @@ const LOAN_PRODUCTS = [
 const FAQ = [
   {
     q: "How quickly can I receive a loan in Cameroon?",
-    a: "Once your KYC is verified and your application is approved, disbursement to your Mobile Money wallet (MTN MoMo or Orange Money) or bank account typically happens within the same business day.",
+    a: "Once your ID is verified and your application is approved, disbursement to your Mobile Money wallet (MTN MoMo or Orange Money) or bank account typically happens within the same business day.",
   },
   {
     q: "Do I need collateral to borrow on BorrowMe2K?",
-    a: "No. BorrowMe2K is a collateral-free micro-lending platform. We rely on identity verification (KYC) and your repayment history instead of physical assets.",
+    a: "No. BorrowMe2K is a collateral-free micro-lending platform. We rely on identity verification and your repayment history instead of physical assets.",
   },
   {
     q: "What interest rate does BorrowMe2K charge?",
@@ -161,8 +161,8 @@ const FAQ = [
     a: "Yes — provided your outstanding balance and repayment track record support additional credit. Each application is reviewed individually.",
   },
   {
-    q: "What is KYC and why is it required?",
-    a: "KYC (Know Your Customer) is a one-time identity check required by Cameroonian financial regulations. You submit your national ID or other government document once; after verification you can apply for any loan product.",
+    q: "What is ID verification and why is it required?",
+    a: "ID verification is a one-time identity check required by Cameroonian financial regulations. You submit your national ID or passport once; after approval you can apply for any loan product.",
   },
 ];
 
@@ -450,7 +450,7 @@ export default function LandingPage() {
                   </div>
                   <h3 className="font-display font-bold text-[#1b4332] text-lg mb-2">Create account &amp; verify identity</h3>
                   <p className="text-[#3a5a47] text-sm leading-relaxed">
-                    Register with your name, phone, and email. Complete a one-time KYC check with your national ID — done in under five minutes.
+                    Register with your name, phone, and email. Submit your national ID for a one-time identity check — done in under five minutes.
                   </p>
                 </li>
 

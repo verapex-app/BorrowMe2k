@@ -215,7 +215,7 @@ function KycGate({
           className="mt-5 flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground rounded-xl py-3.5 font-semibold text-sm"
         >
           <ExternalLink className="w-4 h-4" />
-          {kycStatus === "rejected" ? "Resubmit KYC" : "Start Verification"}
+          {kycStatus === "rejected" ? "Resubmit ID" : "Start ID Verification"}
         </a>
         <button onClick={onClose} className="mt-3 text-sm text-muted-foreground py-1.5">
           I'll do this later

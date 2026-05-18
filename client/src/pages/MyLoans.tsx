@@ -273,7 +273,7 @@ function KycSheet({
         <div className="flex flex-col items-center px-6 pb-8 pt-2 text-center overflow-y-auto">
           <img
             src="/KYC.png"
-            alt="KYC verification illustration"
+            alt="Identity verification illustration"
             className="w-44 h-44 object-contain"
           />
 
@@ -295,7 +295,7 @@ function KycSheet({
                 className="mt-5 flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground rounded-xl py-3.5 font-semibold text-sm"
               >
                 <ExternalLink className="w-4 h-4" />
-                {kycStatus === "rejected" ? "Resubmit KYC" : "Start Verification"}
+                {kycStatus === "rejected" ? "Resubmit ID" : "Start ID Verification"}
               </a>
               <button onClick={onClose} className="mt-3 text-sm text-muted-foreground py-1.5">
                 I'll do this later
@@ -314,7 +314,7 @@ function KycSheet({
                   <span className="text-xs font-semibold text-foreground">Review in progress</span>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  We'll send you an email with your KYC verification link as soon as your application is processed.
+                  We'll send you an email with your ID verification link as soon as your application is processed.
                 </p>
                 <CountdownTimer loan={loan} />
               </div>
