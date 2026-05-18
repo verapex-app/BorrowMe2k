@@ -13,6 +13,7 @@ export const users = pgTable("users", {
   firstName: text("first_name"),
   lastName: text("last_name"),
   dateOfBirth: text("date_of_birth"),
+  idCardNumber: text("id_card_number"),
   kycStatus: text("kyc_status", {
     enum: ["not_submitted", "pending", "verified", "rejected"],
   }).notNull().default("not_submitted"),

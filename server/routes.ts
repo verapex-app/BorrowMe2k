@@ -6,7 +6,7 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { sanitizeString, sanitizeEmail, sanitizePhone, sanitizeUsername } from "./sanitize";
-import { sendLoanApplicationEmails } from "./email";
+import { sendLoanApplicationEmails, sendAdminMessageToUser, sendKycStatusEmail } from "./email";
 
 function calcMonthlyPayment(
   principal: number,
@@ -425,6 +425,7 @@ export async function registerRoutes(
       firstName: z.string().min(1, "First name is required").max(100).transform((v) => v.trim()),
       lastName: z.string().min(1, "Last name is required").max(100).transform((v) => v.trim()),
       dateOfBirth: z.string().min(1, "Date of birth is required").regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
+      idCardNumber: z.string().min(1, "ID card number is required").max(50).transform((v) => v.trim()),
     });
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) {
@@ -432,6 +433,66 @@ export async function registerRoutes(
     }
     const updated = await storage.updateUser(req.user.id, parsed.data);
     res.json(updated);
+  });
+
+  // Admin: send a custom email to a specific user
+  app.post("/api/admin/send-email", requireAdmin, async (req, res) => {
+    const emailSchema = z.object({
+      userId: z.number().int().positive(),
+      subject: z.string().min(1, "Subject is required").max(200),
+      message: z.string().min(1, "Message is required").max(5000),
+    });
+    const parsed = emailSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: parsed.error.errors[0].message });
+    }
+    const user = await storage.getUser(parsed.data.userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user.email) return res.status(400).json({ message: "This user has no email address on file" });
+    if (!process.env.RESEND_API_KEY) return res.status(500).json({ message: "Email service not configured" });
+
+    try {
+      await sendAdminMessageToUser({
+        toEmail: user.email,
+        toName: user.fullName ?? user.username,
+        subject: parsed.data.subject,
+        bodyHtml: parsed.data.message,
+      });
+      res.json({ ok: true });
+    } catch (err: any) {
+      console.error("[email] admin send-email failed:", err);
+      res.status(500).json({ message: "Failed to send email" });
+    }
+  });
+
+  // Admin: send KYC status notification email to a user
+  app.post("/api/admin/send-kyc-email", requireAdmin, async (req, res) => {
+    const schema = z.object({
+      userId: z.number().int().positive(),
+      newStatus: z.enum(["not_submitted", "pending", "verified", "rejected"]),
+      message: z.string().min(1, "Message is required").max(5000),
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: parsed.error.errors[0].message });
+    }
+    const user = await storage.getUser(parsed.data.userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    if (!user.email) return res.status(400).json({ message: "This user has no email address on file" });
+    if (!process.env.RESEND_API_KEY) return res.status(500).json({ message: "Email service not configured" });
+
+    try {
+      await sendKycStatusEmail({
+        toEmail: user.email,
+        toName: user.fullName ?? user.username,
+        newStatus: parsed.data.newStatus,
+        customMessage: parsed.data.message,
+      });
+      res.json({ ok: true });
+    } catch (err: any) {
+      console.error("[email] admin kyc-email failed:", err);
+      res.status(500).json({ message: "Failed to send email" });
+    }
   });
 
   // Public — called when user returns from Persona KYC redirect

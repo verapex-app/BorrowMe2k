@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { ShieldCheck, ShieldX, Clock, Shield, ExternalLink, X, Link2, FileText, ChevronDown } from "lucide-react";
+import {
+  ShieldCheck, ShieldX, Clock, Shield, ExternalLink, X, Link2,
+  ChevronDown, Mail, Send, CheckCircle2, AlertCircle,
+} from "lucide-react";
 
 type AdminUser = {
   id: number;
@@ -12,6 +15,7 @@ type AdminUser = {
   kycStatus: "not_submitted" | "pending" | "verified" | "rejected";
   kycLink: string | null;
   kycNotes: string | null;
+  idCardNumber?: string | null;
 };
 
 const kycConfig = {
@@ -20,6 +24,210 @@ const kycConfig = {
   verified: { label: "Verified", color: "bg-green-100 text-green-700", Icon: ShieldCheck },
   rejected: { label: "Rejected", color: "bg-red-100 text-red-700", Icon: ShieldX },
 };
+
+const defaultKycMessages: Record<AdminUser["kycStatus"], string> = {
+  verified:
+    "Great news! Your identity has been successfully verified on BorrowMe2K. You can now apply for any of our loan products. Log in to the app to get started.",
+  rejected:
+    "Unfortunately, we were unable to verify your identity with the documents submitted. Please resubmit your KYC with a clear, valid, government-issued ID. If you have any questions, reply to this email.",
+  pending:
+    "We have received your KYC submission and it is currently under review. Our team will get back to you within 24 hours.",
+  not_submitted:
+    "Please complete your identity verification on BorrowMe2K to unlock access to our loan products. Open the app and follow the KYC steps to get started.",
+};
+
+function KycEmailDialog({
+  user,
+  newStatus,
+  onClose,
+  onSent,
+}: {
+  user: AdminUser;
+  newStatus: AdminUser["kycStatus"];
+  onClose: () => void;
+  onSent: () => void;
+}) {
+  const [message, setMessage] = useState(defaultKycMessages[newStatus]);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const [sent, setSent] = useState(false);
+
+  const send = async () => {
+    if (!message.trim()) { setError("Message cannot be empty"); return; }
+    setSending(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/send-kyc-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, newStatus, message }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? "Failed to send");
+      setSent(true);
+      setTimeout(() => { onSent(); onClose(); }, 1500);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const cfg = kycConfig[newStatus];
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/60 z-[60]" onClick={onClose} />
+      <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-[70] bg-white rounded-2xl shadow-2xl p-5 max-w-md mx-auto">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Mail className="w-4 h-4 text-gray-500" />
+            <p className="font-semibold text-gray-900 text-sm">Notify User by Email</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-gray-100">
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
+        </div>
+
+        <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium mb-3 ${cfg.color}`}>
+          <cfg.Icon className="w-3.5 h-3.5" />
+          Status changing to: {cfg.label}
+        </div>
+
+        <p className="text-xs text-gray-500 mb-1">
+          To: <span className="font-medium text-gray-800">{user.email ?? "No email on file"}</span>
+        </p>
+
+        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-3 mb-1.5">Email Message</p>
+        <textarea
+          value={message}
+          onChange={(e) => { setMessage(e.target.value); setError(""); }}
+          rows={7}
+          className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+          placeholder="Write your message here..."
+        />
+
+        {error && (
+          <div className="flex items-center gap-1.5 text-red-600 text-xs mt-1.5">
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+            {error}
+          </div>
+        )}
+
+        {sent ? (
+          <div className="flex items-center justify-center gap-2 text-green-700 font-medium text-sm mt-3 py-2.5 bg-green-50 rounded-xl">
+            <CheckCircle2 className="w-4 h-4" />
+            Email sent!
+          </div>
+        ) : (
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={onClose}
+              className="flex-1 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium"
+            >
+              Skip
+            </button>
+            <button
+              onClick={send}
+              disabled={sending || !user.email}
+              className="flex-1 py-2.5 bg-green-600 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <Send className="w-3.5 h-3.5" />
+              {sending ? "Sending…" : "Send Email"}
+            </button>
+          </div>
+        )}
+
+        {!user.email && (
+          <p className="text-xs text-amber-600 mt-2 text-center">This user has no email address on file.</p>
+        )}
+      </div>
+    </>
+  );
+}
+
+function SendEmailPanel({ user, onClose }: { user: AdminUser; onClose: () => void }) {
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const [sent, setSent] = useState(false);
+
+  const send = async () => {
+    if (!subject.trim()) { setError("Subject is required"); return; }
+    if (!message.trim()) { setError("Message is required"); return; }
+    setSending(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, subject, message }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? "Failed to send");
+      setSent(true);
+      setTimeout(onClose, 2000);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (sent) {
+    return (
+      <div className="flex items-center justify-center gap-2 text-green-700 font-medium text-sm py-4 bg-green-50 rounded-xl">
+        <CheckCircle2 className="w-4 h-4" />
+        Email sent successfully!
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-gray-500">
+        To: <span className="font-medium text-gray-800">{user.email ?? "No email on file"}</span>
+      </p>
+      <div>
+        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Subject</p>
+        <input
+          value={subject}
+          onChange={(e) => { setSubject(e.target.value); setError(""); }}
+          placeholder="Email subject..."
+          className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-500"
+        />
+      </div>
+      <div>
+        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Message</p>
+        <textarea
+          value={message}
+          onChange={(e) => { setMessage(e.target.value); setError(""); }}
+          placeholder="Write your message here..."
+          rows={5}
+          className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+        />
+      </div>
+      {error && (
+        <div className="flex items-center gap-1.5 text-red-600 text-xs">
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          {error}
+        </div>
+      )}
+      <button
+        onClick={send}
+        disabled={sending || !user.email}
+        className="w-full py-2.5 bg-green-600 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+      >
+        <Send className="w-3.5 h-3.5" />
+        {sending ? "Sending…" : "Send Email"}
+      </button>
+      {!user.email && (
+        <p className="text-xs text-amber-600 text-center">This user has no email address on file.</p>
+      )}
+    </div>
+  );
+}
 
 function KycBottomSheet({
   user,
@@ -33,6 +241,8 @@ function KycBottomSheet({
   const [kycNotes, setKycNotes] = useState(user.kycNotes ?? "");
   const [showIframe, setShowIframe] = useState(false);
   const [kycLinkError, setKycLinkError] = useState("");
+  const [showEmailPanel, setShowEmailPanel] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<AdminUser["kycStatus"] | null>(null);
 
   const updateUser = useMutation({
     mutationFn: (patch: Partial<AdminUser>) =>
@@ -46,6 +256,7 @@ function KycBottomSheet({
 
   const setStatus = (status: AdminUser["kycStatus"]) => {
     updateUser.mutate({ kycStatus: status, kycNotes, kycLink });
+    setPendingStatus(status);
   };
 
   const isValidUrl = (val: string) => {
@@ -62,24 +273,15 @@ function KycBottomSheet({
     updateUser.mutate({ kycLink, kycNotes });
   };
 
-  const cfg = kycConfig[user.kycStatus];
-
   return (
     <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/50 z-40"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 bg-black/50 z-40" onClick={onClose} />
 
-      {/* Bottom sheet */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl max-h-[92vh] flex flex-col">
-        {/* Handle */}
         <div className="flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 bg-gray-200 rounded-full" />
         </div>
 
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
           <div>
             <p className="font-semibold text-gray-900">{user.fullName ?? user.username}</p>
@@ -91,7 +293,7 @@ function KycBottomSheet({
         </div>
 
         <div className="overflow-y-auto flex-1 px-5 py-4 space-y-5">
-          {/* Current KYC status */}
+          {/* KYC Status */}
           <div>
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">KYC Status</p>
             <div className="grid grid-cols-2 gap-2">
@@ -112,6 +314,7 @@ function KycBottomSheet({
                 )
               )}
             </div>
+            <p className="text-xs text-gray-400 mt-2">Changing status will prompt you to notify the user by email.</p>
           </div>
 
           {/* KYC Provider Link */}
@@ -145,7 +348,6 @@ function KycBottomSheet({
             )}
           </div>
 
-          {/* Inline iframe */}
           {showIframe && kycLink && (
             <div className="rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
               <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-200 bg-gray-100">
@@ -170,7 +372,7 @@ function KycBottomSheet({
             </div>
           )}
 
-          {/* Notes */}
+          {/* Admin Notes */}
           <div>
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Admin Notes</p>
             <textarea
@@ -188,7 +390,24 @@ function KycBottomSheet({
             </button>
           </div>
 
-          {/* User info */}
+          {/* Send Email Panel */}
+          <div>
+            <button
+              onClick={() => setShowEmailPanel(!showEmailPanel)}
+              className="flex items-center justify-between w-full text-xs font-medium text-gray-500 uppercase tracking-wide mb-2"
+            >
+              <div className="flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5" />
+                Send Email to User
+              </div>
+              <ChevronDown className={`w-4 h-4 transition-transform ${showEmailPanel ? "rotate-180" : ""}`} />
+            </button>
+            {showEmailPanel && (
+              <SendEmailPanel user={user} onClose={() => setShowEmailPanel(false)} />
+            )}
+          </div>
+
+          {/* User Details */}
           <div className="bg-gray-50 rounded-xl p-4 space-y-2">
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">User Details</p>
             {[
@@ -197,6 +416,7 @@ function KycBottomSheet({
               ["Email", user.email],
               ["Phone", user.phone],
               ["City", user.city],
+              ["ID Card No.", user.idCardNumber],
             ].map(([label, val]) =>
               val ? (
                 <div key={label} className="flex justify-between text-sm">
@@ -208,6 +428,16 @@ function KycBottomSheet({
           </div>
         </div>
       </div>
+
+      {/* KYC status change email dialog */}
+      {pendingStatus && (
+        <KycEmailDialog
+          user={user}
+          newStatus={pendingStatus}
+          onClose={() => setPendingStatus(null)}
+          onSent={() => setPendingStatus(null)}
+        />
+      )}
     </>
   );
 }

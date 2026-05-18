@@ -33,6 +33,11 @@ const profileSchema = z.object({
     .string()
     .min(1, "Date of birth is required")
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date"),
+  idCardNumber: z
+    .string()
+    .min(1, "ID card number is required")
+    .max(50)
+    .transform((v) => v.trim()),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -54,7 +59,8 @@ export function KycVerifyFlow({
   const profileComplete = !!(
     user?.firstName &&
     user?.lastName &&
-    user?.dateOfBirth
+    user?.dateOfBirth &&
+    user?.idCardNumber
   );
   const [step, setStep] = useState<"profile" | "verify">(
     profileComplete ? "verify" : "profile",
@@ -84,6 +90,7 @@ export function KycVerifyFlow({
       firstName: user?.firstName ?? "",
       lastName: user?.lastName ?? "",
       dateOfBirth: user?.dateOfBirth ?? "",
+      idCardNumber: (user as any)?.idCardNumber ?? "",
     },
   });
 
@@ -199,6 +206,25 @@ export function KycVerifyFlow({
                       type="date"
                       data-testid="input-dob"
                       max={new Date().toISOString().split("T")[0]}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="idCardNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-xs font-semibold">
+                    National ID Card Number
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="e.g. 123456789"
+                      data-testid="input-id-card-number"
                       {...field}
                     />
                   </FormControl>

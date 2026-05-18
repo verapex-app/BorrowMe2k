@@ -63,3 +63,73 @@ export async function sendLoanApplicationEmails(opts: {
     `,
   });
 }
+
+export async function sendAdminMessageToUser(opts: {
+  toEmail: string;
+  toName: string;
+  subject: string;
+  bodyHtml: string;
+}): Promise<void> {
+  const { toEmail, toName, subject, bodyHtml } = opts;
+  const safeBody = bodyHtml
+    .replace(/\n/g, "<br/>")
+    .replace(/</g, (c, i, s) => {
+      const before = s.slice(0, i);
+      return /&(?:#\d+|[a-z]+);$|<br\s*\/?>$|<strong>$|<\/strong>$/.test(before + c) ? c : "&lt;";
+    });
+
+  await resend.emails.send({
+    from: FROM,
+    to: toEmail,
+    subject,
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:32px;background:#f9fafb;border-radius:12px;">
+        <h2 style="color:#15803d;margin-bottom:4px;">BorrowMe2K</h2>
+        <p style="color:#374151;font-size:15px;">Hi <strong>${toName}</strong>,</p>
+        <div style="color:#374151;font-size:15px;line-height:1.7;white-space:pre-wrap;">${bodyHtml}</div>
+        <p style="color:#6b7280;font-size:12px;margin-top:28px;border-top:1px solid #e5e7eb;padding-top:16px;">— The BorrowMe2K Team</p>
+      </div>
+    `,
+  });
+}
+
+export async function sendKycStatusEmail(opts: {
+  toEmail: string;
+  toName: string;
+  newStatus: "verified" | "rejected" | "pending" | "not_submitted";
+  customMessage: string;
+}): Promise<void> {
+  const { toEmail, toName, newStatus, customMessage } = opts;
+
+  const subjectMap: Record<string, string> = {
+    verified: "Your identity has been verified — BorrowMe2K",
+    rejected: "Action required on your KYC submission — BorrowMe2K",
+    pending: "Your KYC submission is under review — BorrowMe2K",
+    not_submitted: "Complete your identity verification — BorrowMe2K",
+  };
+
+  const accentMap: Record<string, string> = {
+    verified: "#15803d",
+    rejected: "#dc2626",
+    pending: "#d97706",
+    not_submitted: "#6b7280",
+  };
+
+  const subject = subjectMap[newStatus] ?? "Update on your account — BorrowMe2K";
+  const accent = accentMap[newStatus] ?? "#1d4ed8";
+
+  await resend.emails.send({
+    from: FROM,
+    to: toEmail,
+    subject,
+    headers: { "X-Priority": "1", "X-MSMail-Priority": "High", "Importance": "High" },
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:32px;background:#f9fafb;border-radius:12px;">
+        <h2 style="color:${accent};margin-bottom:4px;">BorrowMe2K</h2>
+        <p style="color:#374151;font-size:15px;">Hi <strong>${toName}</strong>,</p>
+        <div style="color:#374151;font-size:15px;line-height:1.7;white-space:pre-wrap;background:#fff;border-radius:8px;padding:20px;border:1px solid #e5e7eb;margin:16px 0;">${customMessage}</div>
+        <p style="color:#6b7280;font-size:12px;margin-top:24px;border-top:1px solid #e5e7eb;padding-top:16px;">— The BorrowMe2K Team</p>
+      </div>
+    `,
+  });
+}
