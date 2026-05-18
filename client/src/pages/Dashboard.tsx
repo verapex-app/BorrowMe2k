@@ -7,7 +7,7 @@ import {
   Sheet,
   SheetContent,
 } from "@/components/ui/sheet";
-import { Bell, Plus, FileText, ChevronRight, Banknote, ArrowDownToLine, Clock, ExternalLink, ShieldCheck } from "lucide-react";
+import { Bell, Plus, FileText, ChevronRight, Banknote, ArrowDownToLine, Clock, ExternalLink, ShieldCheck, CreditCard, BookOpen, Car, CheckCircle2 } from "lucide-react";
 import { Link } from "wouter";
 import { LoanProductIcon } from "@/components/LoanProductIcon";
 import { formatXAF, formatDate } from "@/lib/format";
@@ -380,6 +380,19 @@ function WithdrawBlockedSheet({
   const kycLink = user?.kycLink as string | null | undefined;
   const kycStatus = user?.kycStatus as string | undefined;
 
+  const acceptedDocs = [
+    { Icon: CreditCard, label: "National ID Card", sub: "CNI — Carte Nationale d'Identité" },
+    { Icon: BookOpen,   label: "Passport",          sub: "Valid international passport" },
+    { Icon: Car,        label: "Driver's Licence",  sub: "Permis de conduire valide" },
+  ];
+
+  const statusNote =
+    kycStatus === "pending"
+      ? "Your ID is under review. We'll notify you as soon as it's approved."
+      : kycStatus === "rejected"
+      ? "Your previous submission wasn't accepted. Please resubmit a clear, valid document."
+      : "Have one of the documents below ready — the process takes under 3 minutes.";
+
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent
@@ -388,62 +401,70 @@ function WithdrawBlockedSheet({
       >
         <div className="w-10 h-1 bg-border rounded-full mx-auto mt-3 shrink-0" />
 
-        {kycLink ? (
-          <div className="flex flex-col items-center px-6 pb-10 pt-2 text-center">
+        <div className="overflow-y-auto flex-1 px-6 pb-10 pt-3">
+          {/* Header */}
+          <div className="flex flex-col items-center text-center mb-5">
             <img
               src="/KYC.png"
               alt="Identity verification illustration"
-              className="w-52 h-52 object-contain"
+              className="w-40 h-40 object-contain"
             />
             <h2 className="text-xl font-bold text-foreground mt-1">
-              Identity verification needed
+              {kycLink ? "Verify Your Identity" : "Identity Verification Required"}
             </h2>
-            <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xs">
-              Before you can withdraw, we need to verify your identity. It only takes a few minutes.
+            <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed max-w-xs">
+              To protect all users, we require a valid Cameroonian government-issued document before withdrawals are enabled.
             </p>
-            <p className="text-xs text-muted-foreground mt-3 bg-muted rounded-xl px-4 py-3 w-full text-left leading-relaxed">
-              {kycStatus === "pending"
-                ? "Your submission is under review. We'll notify you as soon as it's approved."
-                : kycStatus === "rejected"
-                ? "Your previous submission wasn't approved. Please resubmit to continue."
-                : "Complete this one-time verification to unlock withdrawals."}
-            </p>
-            <a
-              href={kycLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-5 flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground rounded-xl py-3.5 font-semibold text-sm"
-            >
-              <ShieldCheck className="w-4 h-4" />
-              {kycStatus === "rejected" ? "Resubmit ID" : "Start ID Verification"}
-            </a>
-            <button onClick={onClose} className="mt-3 text-sm text-muted-foreground py-1.5">
-              I'll do this later
-            </button>
           </div>
-        ) : (
-          <div className="flex flex-col items-center px-6 pb-10 pt-2 text-center">
-            <img
-              src="/ERROR.png"
-              alt="Access error illustration"
-              className="w-52 h-52 object-contain"
-            />
-            <h2 className="text-xl font-bold text-foreground mt-1">
-              Withdrawals unavailable
-            </h2>
-            <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xs">
-              You cannot access withdrawals right now. You need to complete your
-              identity verification before this feature is unlocked.
+
+          {/* Accepted documents */}
+          <div className="mb-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              Accepted documents
             </p>
-            <p className="text-xs text-muted-foreground mt-3 bg-muted rounded-xl px-4 py-3 w-full text-left leading-relaxed">
-              Once your identity is verified, withdrawals will be available
-              instantly. Head to any loan product to submit your ID.
-            </p>
-            <Button className="mt-5 w-full" onClick={onClose}>
+            <div className="space-y-2">
+              {acceptedDocs.map(({ Icon, label, sub }) => (
+                <div key={label} className="flex items-center gap-3 bg-muted/60 rounded-xl px-4 py-3">
+                  <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                    <Icon className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">{label}</p>
+                    <p className="text-xs text-muted-foreground">{sub}</p>
+                  </div>
+                  <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 ml-auto" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Status note */}
+          <p className="text-xs text-muted-foreground bg-muted rounded-xl px-4 py-3 leading-relaxed mb-5">
+            {statusNote}
+          </p>
+
+          {/* CTA */}
+          {kycLink ? (
+            <>
+              <a
+                href={kycLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground rounded-xl py-3.5 font-semibold text-sm"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                {kycStatus === "rejected" ? "Resubmit ID Document" : "Start ID Verification"}
+              </a>
+              <button onClick={onClose} className="mt-3 w-full text-sm text-muted-foreground py-1.5">
+                I'll do this later
+              </button>
+            </>
+          ) : (
+            <Button className="w-full" onClick={onClose}>
               Got it
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </SheetContent>
     </Sheet>
   );
