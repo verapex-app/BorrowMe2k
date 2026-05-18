@@ -1,0 +1,61 @@
+We need to update the KYC flow integration for the platform.
+
+Current Situation:The KYC provider generates links like this:
+
+https://bridge.withpersona.com/verify?fields%5Bdeveloper_id%5D=caf2d806-718f-44c1-b0a6-c465aeda82a6&fields%5Bemail_address%5D=edmon.dlinux%2Babeh%40gmail.com&fields%5Biqt_token%5D=46f7565fe2ba42843b957cec6d783e48f85dff6d6ea56cf5753634b09a3214e8WwzmNl3bpmDX&inquiry-template-id=itmpl_NtHYpb9AbEYCPxGo5iRbc9d2&reference-id=3dd30201-34c7-4e52-80d5-fc715646d3e0&redirect-uri=https://borrowme2k.com
+
+Right now, the redirect-uri parameter simply redirects users back to the homepage:redirect-uri=https://borrowme2k.com
+
+Problem:When a user completes their KYC submission, the admin currently has no way of knowing which user submitted KYC because all users redirect to the same URL.
+
+Required Update:The redirect-uri must include a unique identifier that maps back to a specific user account.
+
+Example:redirect-uri=https://borrowme2k.com/submission?id=USER_UNIQUE_ID
+
+This way, after KYC submission:
+
+The user is redirected back with their unique identifier.
+
+The system can detect which user completed the KYC process.
+
+The admin dashboard can then display that the user submitted KYC.
+
+The admin can manually review the status and update the user account accordingly.
+
+New Admin Dashboard Feature:I want a section in the admin dashboard where I can store and manage multiple pre-generated KYC links.
+
+Example workflow:
+
+Admin adds many KYC links into the dashboard.
+
+When a new user signs up:
+
+The system automatically checks the available unused KYC links.
+
+Assigns one KYC link to that user.
+
+Updates the redirect-uri dynamically with the user's unique ID.
+
+Each KYC link should only be assigned to one user.
+
+The assignment should continue automatically for every new signup.
+
+Additional Requirements:
+
+Store which KYC link belongs to which user.
+
+Mark links as used after assignment.
+
+If no KYC links are available, notify the admin.
+
+The admin should be able to manually update the user's KYC status.
+
+
+
+Expected Result:A fully automated KYC assignment system where:
+
+New users automatically receive an available KYC link.
+
+Redirect URLs uniquely identify the user.
+
+Admins can track KYC submissions and statuses easily from the dashboard.

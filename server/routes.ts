@@ -384,6 +384,48 @@ export async function registerRoutes(
     res.json(all);
   });
 
+  // Admin KYC link pool
+  app.get("/api/admin/kyc-pool", requireAdmin, async (_req, res) => {
+    const links = await storage.listKycPoolLinks();
+    res.json(links);
+  });
+
+  app.post("/api/admin/kyc-pool", requireAdmin, async (req, res) => {
+    const { rawLink } = req.body;
+    if (!rawLink || typeof rawLink !== "string") {
+      return res.status(400).json({ message: "rawLink is required" });
+    }
+    try { new URL(rawLink); } catch {
+      return res.status(400).json({ message: "Must be a valid URL" });
+    }
+    const link = await storage.addKycPoolLink(rawLink.trim());
+    res.status(201).json(link);
+  });
+
+  app.delete("/api/admin/kyc-pool/:id", requireAdmin, async (req, res) => {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    await storage.deleteKycPoolLink(id);
+    res.json({ ok: true });
+  });
+
+  // Admin manually assign a pool link to a user
+  app.post("/api/admin/kyc-pool/assign/:userId", requireAdmin, async (req, res) => {
+    const userId = Number(req.params.userId);
+    if (Number.isNaN(userId)) return res.status(400).json({ message: "Invalid userId" });
+    const link = await storage.assignKycLinkToUser(userId);
+    if (!link) return res.status(404).json({ message: "No available KYC links in the pool" });
+    res.json({ kycLink: link });
+  });
+
+  // Public — called when user returns from Persona KYC redirect
+  app.post("/api/kyc/submitted", async (req, res) => {
+    const userId = Number(req.body.userId);
+    if (Number.isNaN(userId)) return res.status(400).json({ message: "Invalid userId" });
+    await storage.markKycSubmitted(userId);
+    res.json({ ok: true });
+  });
+
   await seedDatabase();
   return httpServer;
 }

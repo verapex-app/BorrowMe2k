@@ -3,15 +3,17 @@ import {
   loanProducts,
   loans,
   repayments,
+  kycLinkPool,
   type User,
   type InsertUser,
   type LoanProduct,
   type InsertLoanProduct,
   type Loan,
   type Repayment,
+  type KycPoolLink,
 } from "@shared/schema";
 import { db, pool } from "./db";
-import { eq, desc, asc } from "drizzle-orm";
+import { eq, desc, asc, isNull } from "drizzle-orm";
 import session from "express-session";
 import MemoryStore from "memorystore";
 
@@ -43,6 +45,14 @@ export interface IStorage {
   updateUser(id: number, patch: Partial<User>): Promise<User>;
   listAllLoans(): Promise<(Loan & { applicantName: string; applicantPhone: string })[]>;
   listAllRepayments(): Promise<Repayment[]>;
+
+  // KYC link pool
+  addKycPoolLink(rawLink: string): Promise<KycPoolLink>;
+  listKycPoolLinks(): Promise<(KycPoolLink & { assignedUsername: string | null })[]>;
+  deleteKycPoolLink(id: number): Promise<void>;
+  assignKycLinkToUser(userId: number): Promise<string | null>;
+  markKycSubmitted(userId: number): Promise<void>;
+
   getPlatformStats(): Promise<{
     totalUsers: number;
     totalLoans: number;
@@ -233,6 +243,56 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(repayments).orderBy(desc(repayments.paidAt));
   }
 
+  async addKycPoolLink(rawLink: string): Promise<KycPoolLink> {
+    const [row] = await db.insert(kycLinkPool).values({ rawLink }).returning();
+    return row;
+  }
+
+  async listKycPoolLinks(): Promise<(KycPoolLink & { assignedUsername: string | null })[]> {
+    const rows = await db
+      .select({ link: kycLinkPool, username: users.username })
+      .from(kycLinkPool)
+      .leftJoin(users, eq(kycLinkPool.assignedUserId, users.id))
+      .orderBy(desc(kycLinkPool.createdAt));
+    return rows.map((r) => ({ ...r.link, assignedUsername: r.username ?? null }));
+  }
+
+  async deleteKycPoolLink(id: number): Promise<void> {
+    await db.delete(kycLinkPool).where(eq(kycLinkPool.id, id));
+  }
+
+  async assignKycLinkToUser(userId: number): Promise<string | null> {
+    const [available] = await db
+      .select()
+      .from(kycLinkPool)
+      .where(isNull(kycLinkPool.assignedUserId))
+      .orderBy(asc(kycLinkPool.createdAt))
+      .limit(1);
+
+    if (!available) return null;
+
+    const personalizedLink = buildPersonalizedKycLink(available.rawLink, userId);
+
+    await db
+      .update(kycLinkPool)
+      .set({ assignedUserId: userId, assignedAt: new Date() })
+      .where(eq(kycLinkPool.id, available.id));
+
+    await db
+      .update(users)
+      .set({ kycLink: personalizedLink })
+      .where(eq(users.id, userId));
+
+    return personalizedLink;
+  }
+
+  async markKycSubmitted(userId: number): Promise<void> {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    if (user && user.kycStatus === "not_submitted") {
+      await db.update(users).set({ kycStatus: "pending" }).where(eq(users.id, userId));
+    }
+  }
+
   async getPlatformStats() {
     const allUsers = await db.select().from(users);
     const allLoans = await db.select().from(loans);
@@ -257,3 +317,14 @@ export class DatabaseStorage implements IStorage {
 }
 
 export const storage = new DatabaseStorage();
+
+function buildPersonalizedKycLink(rawLink: string, userId: number): string {
+  const submissionBase = `https://borrowme2k.com/submission?id=${userId}`;
+  try {
+    const url = new URL(rawLink);
+    url.searchParams.set("redirect-uri", submissionBase);
+    return url.toString();
+  } catch {
+    return rawLink.replace(/redirect-uri=[^&]*/i, `redirect-uri=${encodeURIComponent(submissionBase)}`);
+  }
+}

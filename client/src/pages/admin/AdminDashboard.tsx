@@ -1,20 +1,22 @@
 import { useState } from "react";
-import { LayoutDashboard, Users, CreditCard, History, LogOut, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Users, CreditCard, History, LogOut, ShieldCheck, Link2 } from "lucide-react";
 import { useAdmin } from "@/hooks/use-admin";
 import AdminLogin from "./AdminLogin";
 import Overview from "./tabs/Overview";
 import UsersKyc from "./tabs/UsersKyc";
 import Loans from "./tabs/Loans";
 import Repayments from "./tabs/Repayments";
+import KycLinks from "./tabs/KycLinks";
 import { Loader2 } from "lucide-react";
 
-type Tab = "overview" | "users" | "loans" | "repayments";
+type Tab = "overview" | "users" | "loans" | "repayments" | "kyc-links";
 
 const tabs: { id: Tab; label: string; Icon: React.ComponentType<any> }[] = [
   { id: "overview", label: "Overview", Icon: LayoutDashboard },
-  { id: "users", label: "Users & KYC", Icon: Users },
+  { id: "users", label: "Users", Icon: Users },
   { id: "loans", label: "Loans", Icon: CreditCard },
   { id: "repayments", label: "Repayments", Icon: History },
+  { id: "kyc-links", label: "KYC Links", Icon: Link2 },
 ];
 
 export default function AdminDashboard() {
@@ -40,7 +42,9 @@ export default function AdminDashboard() {
       ? UsersKyc
       : activeTab === "loans"
       ? Loans
-      : Repayments;
+      : activeTab === "repayments"
+      ? Repayments
+      : KycLinks;
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

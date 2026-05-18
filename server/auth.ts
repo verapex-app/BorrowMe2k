@@ -146,6 +146,9 @@ export function setupAuth(app: Express) {
         password: hashedPassword,
       });
 
+      // Auto-assign a KYC link from the pool (best-effort, non-blocking)
+      storage.assignKycLinkToUser(user.id).catch(() => {});
+
       req.login(user, (err) => {
         if (err) return next(err);
         res.status(201).json(user);

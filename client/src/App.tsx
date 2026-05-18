@@ -14,6 +14,7 @@ import AuthPage from "@/pages/AuthPage";
 import LandingPage from "@/pages/LandingPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
+import SubmissionPage from "@/pages/Submission";
 import { useUser } from "@/hooks/use-user";
 import { Loader2 } from "lucide-react";
 
@@ -24,6 +25,11 @@ function Router() {
   // Admin route — fully standalone, no user auth needed
   if (location.startsWith("/admin")) {
     return <AdminDashboard />;
+  }
+
+  // KYC submission redirect landing page — public, no auth needed
+  if (location.startsWith("/submission")) {
+    return <SubmissionPage />;
   }
 
   const resetMatch = location.match(/^\/reset-password/);

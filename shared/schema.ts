@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, numeric, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -49,6 +49,14 @@ export const loans = pgTable("loans", {
   appliedAt: timestamp("applied_at").defaultNow().notNull(),
   approvedAt: timestamp("approved_at"),
   dueDate: timestamp("due_date").notNull(),
+});
+
+export const kycLinkPool = pgTable("kyc_link_pool", {
+  id: serial("id").primaryKey(),
+  rawLink: text("raw_link").notNull(),
+  assignedUserId: integer("assigned_user_id").references(() => users.id),
+  assignedAt: timestamp("assigned_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const repayments = pgTable("repayments", {
@@ -139,5 +147,6 @@ export type LoanProduct = typeof loanProducts.$inferSelect;
 export type InsertLoanProduct = z.infer<typeof insertLoanProductSchema>;
 export type Loan = typeof loans.$inferSelect;
 export type Repayment = typeof repayments.$inferSelect;
+export type KycPoolLink = typeof kycLinkPool.$inferSelect;
 export type ApplyLoanInput = z.infer<typeof applyLoanSchema>;
 export type RepaymentInput = z.infer<typeof repaymentSchema>;
