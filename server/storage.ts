@@ -246,20 +246,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(id: number): Promise<void> {
-    // 1. Release any pool KYC link assigned to this user back to the pool
-    await db
-      .update(kycLinkPool)
-      .set({ assignedUserId: null, assignedAt: null })
-      .where(eq(kycLinkPool.assignedUserId, id));
-
-    // 2. Delete repayments that belong to this user
-    await db.delete(repayments).where(eq(repayments.userId, id));
-
-    // 3. Delete loans that belong to this user
-    await db.delete(loans).where(eq(loans.userId, id));
-
-    // 4. Finally delete the user
-    await db.delete(users).where(eq(users.id, id));
+    // Use raw SQL in a transaction to avoid Drizzle's nullable-column
+    // type validation and to ensure atomicity across all 4 steps.
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      // 1. Release any assigned KYC pool link back to available
+      await client.query(
+        "UPDATE kyc_link_pool SET assigned_user_id = NULL, assigned_at = NULL WHERE assigned_user_id = $1",
+        [id],
+      );
+      // 2. Delete all repayments for this user
+      await client.query("DELETE FROM repayments WHERE user_id = $1", [id]);
+      // 3. Delete all loans for this user
+      await client.query("DELETE FROM loans WHERE user_id = $1", [id]);
+      // 4. Delete the user record
+      await client.query("DELETE FROM users WHERE id = $1", [id]);
+      await client.query("COMMIT");
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 
   async addKycPoolLink(rawLink: string): Promise<KycPoolLink> {
