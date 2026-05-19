@@ -439,6 +439,19 @@ export async function registerRoutes(
     res.json(updated);
   });
 
+  // Admin: delete a user (releases their KYC link back to the pool)
+  app.delete("/api/admin/users/:id", requireAdmin, async (req, res) => {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+    try {
+      await storage.deleteUser(id);
+      res.json({ ok: true });
+    } catch (err: any) {
+      console.error("[admin] deleteUser error:", err);
+      res.status(500).json({ message: err.message ?? "Failed to delete user" });
+    }
+  });
+
   // Admin: end the waiting period for a user and send the KYC ready email
   app.post("/api/admin/users/:id/clear-waiting", requireAdmin, async (req, res) => {
     const id = Number(req.params.id);

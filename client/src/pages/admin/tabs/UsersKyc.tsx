@@ -3,7 +3,7 @@ import { useState, useRef } from "react";
 import {
   ShieldCheck, ShieldX, Clock, Shield, ExternalLink, X, Link2,
   ChevronDown, Mail, Send, CheckCircle2, AlertCircle, Hourglass,
-  Link as LinkIcon, Eye,
+  Link as LinkIcon, Eye, Trash2,
 } from "lucide-react";
 
 type AdminUser = {
@@ -519,6 +519,101 @@ function SendEmailPanel({ user, onClose }: { user: AdminUser; onClose: () => voi
   );
 }
 
+// ── Delete User Confirmation Dialog ───────────────────────────────────────
+
+function DeleteUserDialog({
+  user,
+  onClose,
+  onDeleted,
+}: {
+  user: AdminUser;
+  onClose: () => void;
+  onDeleted: () => void;
+}) {
+  const qc = useQueryClient();
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? "Failed to delete user");
+      setDone(true);
+      qc.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      setTimeout(() => { onDeleted(); onClose(); }, 1200);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/60 z-[60]" onClick={onClose} />
+      <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-[70] bg-white rounded-2xl shadow-2xl overflow-hidden max-w-sm mx-auto">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <Trash2 className="w-4 h-4 text-red-500" />
+            <p className="font-semibold text-gray-900 text-sm">Delete User</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-gray-100">
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
+        </div>
+
+        <div className="px-5 py-4 space-y-3">
+          <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+            <p className="text-xs font-semibold text-red-800 mb-0.5">This cannot be undone</p>
+            <p className="text-xs text-red-700 leading-relaxed">
+              Deleting <strong>{user.fullName ?? user.username}</strong> will permanently remove their
+              account, all loans, and all repayments. Their assigned KYC link will
+              be released back to the pool.
+            </p>
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-1.5 text-red-600 text-xs">
+              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+              {error}
+            </div>
+          )}
+        </div>
+
+        <div className="px-5 pb-5">
+          {done ? (
+            <div className="flex items-center justify-center gap-2 text-green-700 font-medium text-sm py-2.5 bg-green-50 rounded-xl">
+              <CheckCircle2 className="w-4 h-4" />
+              User deleted
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                onClick={onClose}
+                className="flex-1 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                {deleting ? "Deleting…" : "Yes, Delete"}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 // ── Bottom Sheet ───────────────────────────────────────────────────────────
 
 function KycBottomSheet({ user, onClose }: { user: AdminUser; onClose: () => void }) {
@@ -530,6 +625,7 @@ function KycBottomSheet({ user, onClose }: { user: AdminUser; onClose: () => voi
   const [showEmailPanel, setShowEmailPanel] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<AdminUser["kycStatus"] | null>(null);
   const [showClearWaiting, setShowClearWaiting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Use live user data (refetch to get waiting state)
   const { data: liveUsers } = useQuery<AdminUser[]>({
@@ -733,6 +829,21 @@ function KycBottomSheet({ user, onClose }: { user: AdminUser; onClose: () => voi
               ) : null
             )}
           </div>
+
+          {/* Danger Zone */}
+          <div className="border border-red-100 rounded-xl p-4">
+            <p className="text-xs font-medium text-red-500 uppercase tracking-wide mb-2">Danger Zone</p>
+            <button
+              onClick={() => setShowDeleteDialog(true)}
+              className="w-full py-2.5 border border-red-200 text-red-600 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 hover:bg-red-50 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete User Account
+            </button>
+            <p className="text-xs text-gray-400 mt-1.5 text-center">
+              Permanently removes this user, their loans, and releases their KYC link.
+            </p>
+          </div>
         </div>
       </div>
 
@@ -753,6 +864,14 @@ function KycBottomSheet({ user, onClose }: { user: AdminUser; onClose: () => voi
             setShowClearWaiting(false);
             qc.invalidateQueries({ queryKey: ["/api/admin/users"] });
           }}
+        />
+      )}
+
+      {showDeleteDialog && (
+        <DeleteUserDialog
+          user={liveUser}
+          onClose={() => setShowDeleteDialog(false)}
+          onDeleted={onClose}
         />
       )}
     </>

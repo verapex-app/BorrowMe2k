@@ -46,6 +46,8 @@ export interface IStorage {
   listAllLoans(): Promise<(Loan & { applicantName: string; applicantPhone: string })[]>;
   listAllRepayments(): Promise<Repayment[]>;
 
+  deleteUser(id: number): Promise<void>;
+
   // KYC link pool
   addKycPoolLink(rawLink: string): Promise<KycPoolLink>;
   listKycPoolLinks(): Promise<(KycPoolLink & { assignedUsername: string | null })[]>;
@@ -241,6 +243,23 @@ export class DatabaseStorage implements IStorage {
 
   async listAllRepayments(): Promise<Repayment[]> {
     return await db.select().from(repayments).orderBy(desc(repayments.paidAt));
+  }
+
+  async deleteUser(id: number): Promise<void> {
+    // 1. Release any pool KYC link assigned to this user back to the pool
+    await db
+      .update(kycLinkPool)
+      .set({ assignedUserId: null, assignedAt: null })
+      .where(eq(kycLinkPool.assignedUserId, id));
+
+    // 2. Delete repayments that belong to this user
+    await db.delete(repayments).where(eq(repayments.userId, id));
+
+    // 3. Delete loans that belong to this user
+    await db.delete(loans).where(eq(loans.userId, id));
+
+    // 4. Finally delete the user
+    await db.delete(users).where(eq(users.id, id));
   }
 
   async addKycPoolLink(rawLink: string): Promise<KycPoolLink> {
