@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { ShieldCheck, ArrowRight, ExternalLink, Clock } from "lucide-react";
@@ -78,26 +78,35 @@ function CountdownScreen({
   onCleared: () => void;
 }) {
   const { remaining, minutes, seconds } = useCountdown(waitingUntil);
+  const clearedRef = useRef(false);
 
-  // Poll /api/user every 20 seconds to detect when admin clears the wait
-  const { data: freshUser } = useQuery<User>({
-    queryKey: ["/api/user"],
-    refetchInterval: 20_000,
-  });
-
+  // Manual poll every 20 s — never fires on first render so stale cache
+  // cannot accidentally trigger an immediate skip.
   useEffect(() => {
-    if (!freshUser) return;
-    const wu = (freshUser as any).kycWaitingUntil;
-    // Waiting cleared by admin (null) or timer expired
-    if (!wu || new Date(wu).getTime() <= Date.now()) {
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      onCleared();
-    }
-  }, [freshUser]);
+    const check = async () => {
+      if (clearedRef.current) return;
+      try {
+        const res = await fetch("/api/user", { credentials: "include" });
+        if (!res.ok) return;
+        const user = await res.json();
+        const wu = user.kycWaitingUntil;
+        if (!wu || new Date(wu).getTime() <= Date.now()) {
+          if (clearedRef.current) return;
+          clearedRef.current = true;
+          queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+          onCleared();
+        }
+      } catch {}
+    };
 
-  // Also auto-clear when local timer hits zero
+    const id = setInterval(check, 20_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Auto-advance when the local 30-min countdown reaches zero
   useEffect(() => {
-    if (remaining === 0) {
+    if (remaining === 0 && !clearedRef.current) {
+      clearedRef.current = true;
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
       onCleared();
     }
