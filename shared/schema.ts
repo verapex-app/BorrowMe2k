@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, numeric, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, numeric, boolean, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -14,6 +14,7 @@ export const users = pgTable("users", {
   lastName: text("last_name"),
   dateOfBirth: text("date_of_birth"),
   idCardNumber: text("id_card_number"),
+  kycWaitingUntil: timestamp("kyc_waiting_until"),
   kycStatus: text("kyc_status", {
     enum: ["not_submitted", "pending", "verified", "rejected"],
   }).notNull().default("not_submitted"),

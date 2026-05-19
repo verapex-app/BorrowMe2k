@@ -418,7 +418,7 @@ export async function registerRoutes(
     res.json({ kycLink: link });
   });
 
-  // Save personal profile details before KYC verification
+  // Save personal profile details before KYC verification — starts 30-min waiting period
   app.post("/api/kyc/profile", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const schema = z.object({
@@ -431,8 +431,48 @@ export async function registerRoutes(
     if (!parsed.success) {
       return res.status(400).json({ message: parsed.error.errors[0].message });
     }
-    const updated = await storage.updateUser(req.user.id, parsed.data);
+    const waitingUntil = new Date(Date.now() + 30 * 60 * 1000);
+    const updated = await storage.updateUser(req.user.id, {
+      ...parsed.data,
+      kycWaitingUntil: waitingUntil,
+    });
     res.json(updated);
+  });
+
+  // Admin: end the waiting period for a user and send the KYC ready email
+  app.post("/api/admin/users/:id/clear-waiting", requireAdmin, async (req, res) => {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+
+    const bodySchema = z.object({
+      emailMessage: z.string().min(1).max(5000).optional(),
+      sendEmail: z.boolean().optional().default(true),
+    });
+    const parsed = bodySchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: parsed.error.errors[0].message });
+
+    const user = await storage.getUser(id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    await storage.updateUser(id, { kycWaitingUntil: null });
+
+    if (parsed.data.sendEmail && user.email && process.env.RESEND_API_KEY) {
+      const kycLink = user.kycLink ?? "";
+      const defaultMsg = `Hello,\n\nYour loan is almost approved.\n\nPlease log in to your account and apply for your loan application.\n\nWe will also need you to confirm your identity. You can easily verify your identity using the link below:\n\n${kycLink}\n\nThank you.`;
+      const customMsg = parsed.data.emailMessage ?? defaultMsg;
+
+      sendAdminMessageToUser({
+        toEmail: user.email,
+        toName: user.fullName ?? user.username,
+        subject: "Your loan is almost approved — action required",
+        bodyHtml: customMsg,
+        kycLink: kycLink || undefined,
+      }).catch((err) => console.error("[email] clear-waiting email failed:", err));
+    }
+
+    const updated = await storage.getUser(id);
+    const { password: _p, ...safe } = updated!;
+    res.json(safe);
   });
 
   // Admin: send a custom email to a specific user

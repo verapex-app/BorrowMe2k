@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   ShieldCheck, ShieldX, Clock, Shield, ExternalLink, X, Link2,
-  ChevronDown, Mail, Send, CheckCircle2, AlertCircle,
+  ChevronDown, Mail, Send, CheckCircle2, AlertCircle, Hourglass,
+  Link as LinkIcon, Eye,
 } from "lucide-react";
 
 type AdminUser = {
@@ -16,6 +17,7 @@ type AdminUser = {
   kycLink: string | null;
   kycNotes: string | null;
   idCardNumber?: string | null;
+  kycWaitingUntil?: string | null;
 };
 
 const kycConfig = {
@@ -35,6 +37,311 @@ const defaultKycMessages: Record<AdminUser["kycStatus"], string> = {
   not_submitted:
     "Please complete your identity verification on BorrowMe2K to unlock access to our loan products. Open the app and follow the KYC steps to get started.",
 };
+
+function isWaiting(user: AdminUser): boolean {
+  if (!user.kycWaitingUntil) return false;
+  return new Date(user.kycWaitingUntil).getTime() > Date.now();
+}
+
+function waitingMinutes(user: AdminUser): number {
+  if (!user.kycWaitingUntil) return 0;
+  return Math.max(0, Math.ceil((new Date(user.kycWaitingUntil).getTime() - Date.now()) / 60000));
+}
+
+// ── Rich email editor with link insertion ──────────────────────────────────
+
+function LinkInsertDialog({
+  onInsert,
+  onClose,
+}: {
+  onInsert: (text: string, url: string) => void;
+  onClose: () => void;
+}) {
+  const [linkText, setLinkText] = useState("");
+  const [linkUrl, setLinkUrl] = useState("https://");
+
+  return (
+    <>
+      <div className="fixed inset-0 z-[80]" onClick={onClose} />
+      <div className="absolute left-0 right-0 bottom-full mb-2 z-[90] bg-white border border-gray-200 rounded-xl shadow-xl p-3 space-y-2">
+        <p className="text-xs font-semibold text-gray-700">Insert Clickable Link</p>
+        <input
+          value={linkText}
+          onChange={(e) => setLinkText(e.target.value)}
+          placeholder="Link label (e.g. Verify your identity)"
+          className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-2 focus:outline-none focus:ring-1 focus:ring-green-500"
+          autoFocus
+        />
+        <input
+          value={linkUrl}
+          onChange={(e) => setLinkUrl(e.target.value)}
+          placeholder="https://..."
+          className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-2 focus:outline-none focus:ring-1 focus:ring-green-500"
+        />
+        <div className="flex gap-2">
+          <button
+            onClick={onClose}
+            className="flex-1 py-1.5 text-xs border border-gray-200 rounded-lg text-gray-500"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              if (linkText.trim() && linkUrl.trim()) {
+                onInsert(linkText.trim(), linkUrl.trim());
+                onClose();
+              }
+            }}
+            className="flex-1 py-1.5 text-xs bg-green-600 text-white rounded-lg font-medium"
+          >
+            Insert
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function RichEmailEditor({
+  value,
+  onChange,
+  placeholder,
+  rows = 6,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  rows?: number;
+}) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [showLinkDialog, setShowLinkDialog] = useState(false);
+  const [preview, setPreview] = useState(false);
+
+  const insertLink = (text: string, url: string) => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const selected = value.slice(start, end);
+    const label = selected || text;
+    const insertion = `[${label}](${url})`;
+    const newVal = value.slice(0, start) + insertion + value.slice(end);
+    onChange(newVal);
+    setTimeout(() => {
+      ta.focus();
+      ta.setSelectionRange(start + insertion.length, start + insertion.length);
+    }, 0);
+  };
+
+  // Simple preview renderer — convert [text](url) to <a> tags
+  const renderPreview = (msg: string) =>
+    msg
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/\n/g, "<br/>")
+      .replace(
+        /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
+        (_m, label, url) =>
+          `<a href="${url}" style="color:#15803d;font-weight:600;">${label}</a>`,
+      );
+
+  return (
+    <div className="relative">
+      <div className="flex items-center gap-2 mb-1.5">
+        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide flex-1">Email Message</p>
+        <button
+          type="button"
+          onClick={() => setPreview(!preview)}
+          className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600"
+        >
+          <Eye className="w-3 h-3" />
+          {preview ? "Edit" : "Preview"}
+        </button>
+      </div>
+
+      {preview ? (
+        <div
+          className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 bg-gray-50 min-h-[120px] leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: renderPreview(value) }}
+        />
+      ) : (
+        <div className="relative">
+          <textarea
+            ref={textareaRef}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            rows={rows}
+            className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none pb-10"
+          />
+          <div className="absolute bottom-2 left-2 right-2 flex items-center gap-1.5">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setShowLinkDialog(!showLinkDialog)}
+                className="flex items-center gap-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg px-2 py-1 font-medium"
+              >
+                <LinkIcon className="w-3 h-3" />
+                Insert Link
+              </button>
+              {showLinkDialog && (
+                <LinkInsertDialog
+                  onInsert={insertLink}
+                  onClose={() => setShowLinkDialog(false)}
+                />
+              )}
+            </div>
+            <p className="text-xs text-gray-400 ml-1">Use [label](url) for clickable links</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Clear Waiting Dialog ───────────────────────────────────────────────────
+
+function ClearWaitingDialog({
+  user,
+  onClose,
+  onCleared,
+}: {
+  user: AdminUser;
+  onClose: () => void;
+  onCleared: () => void;
+}) {
+  const qc = useQueryClient();
+  const kycLink = user.kycLink ?? "";
+  const defaultMsg =
+    `Hello,\n\nYour loan is almost approved.\n\nPlease log in to your account and apply for your loan application.\n\nWe will also need you to confirm your identity. You can easily verify your identity using the link below:\n\n[Verify Your Identity](${kycLink || "https://..."})\n\nThank you.`;
+
+  const [message, setMessage] = useState(defaultMsg);
+  const [sendEmail, setSendEmail] = useState(true);
+  const [clearing, setClearing] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+
+  const clear = async () => {
+    setClearing(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}/clear-waiting`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emailMessage: message, sendEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? "Failed");
+      setDone(true);
+      qc.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      setTimeout(() => { onCleared(); onClose(); }, 1500);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setClearing(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/60 z-[60]" onClick={onClose} />
+      <div className="fixed inset-x-3 top-[5%] bottom-[5%] z-[70] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden max-w-lg mx-auto">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <Hourglass className="w-4 h-4 text-amber-500" />
+            <p className="font-semibold text-gray-900 text-sm">End Waiting Period</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-full hover:bg-gray-100">
+            <X className="w-4 h-4 text-gray-500" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+          <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
+            <p className="text-xs font-semibold text-amber-800">What this does</p>
+            <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
+              Ends the 30-minute waiting period for <strong>{user.fullName ?? user.username}</strong>.
+              The user will immediately be able to proceed to identity verification.
+              {user.email && " An email will be sent to notify them."}
+            </p>
+          </div>
+
+          {user.email && (
+            <>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={sendEmail}
+                  onChange={(e) => setSendEmail(e.target.checked)}
+                  className="rounded border-gray-300 text-green-600"
+                />
+                <span className="text-sm text-gray-700 font-medium">Send email notification</span>
+              </label>
+
+              {sendEmail && (
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-500">
+                    To: <span className="font-medium text-gray-800">{user.email}</span>
+                  </p>
+                  <RichEmailEditor
+                    value={message}
+                    onChange={setMessage}
+                    placeholder="Write your message..."
+                    rows={9}
+                  />
+                  <p className="text-xs text-gray-400">
+                    Tip: Use <code className="bg-gray-100 px-1 rounded">[label](url)</code> to insert a clickable link. Use the "Insert Link" button for help.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+
+          {!user.email && (
+            <p className="text-xs text-amber-600 bg-amber-50 rounded-xl px-3 py-2">
+              This user has no email address — no notification will be sent.
+            </p>
+          )}
+
+          {error && (
+            <div className="flex items-center gap-1.5 text-red-600 text-xs">
+              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+              {error}
+            </div>
+          )}
+        </div>
+
+        <div className="px-5 py-4 border-t border-gray-100">
+          {done ? (
+            <div className="flex items-center justify-center gap-2 text-green-700 font-medium text-sm py-2.5 bg-green-50 rounded-xl">
+              <CheckCircle2 className="w-4 h-4" />
+              Waiting period ended!
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                onClick={onClose}
+                className="flex-1 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={clear}
+                disabled={clearing}
+                className="flex-1 py-2.5 bg-amber-500 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <Hourglass className="w-3.5 h-3.5" />
+                {clearing ? "Processing…" : "End Waiting Period"}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── KYC Status Email Dialog ────────────────────────────────────────────────
 
 function KycEmailDialog({
   user,
@@ -78,8 +385,8 @@ function KycEmailDialog({
   return (
     <>
       <div className="fixed inset-0 bg-black/60 z-[60]" onClick={onClose} />
-      <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 z-[70] bg-white rounded-2xl shadow-2xl p-5 max-w-md mx-auto">
-        <div className="flex items-center justify-between mb-4">
+      <div className="fixed inset-x-3 top-[10%] bottom-[10%] z-[70] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden max-w-lg mx-auto">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2">
             <Mail className="w-4 h-4 text-gray-500" />
             <p className="font-semibold text-gray-900 text-sm">Notify User by Email</p>
@@ -89,62 +396,54 @@ function KycEmailDialog({
           </button>
         </div>
 
-        <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium mb-3 ${cfg.color}`}>
-          <cfg.Icon className="w-3.5 h-3.5" />
-          Status changing to: {cfg.label}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+          <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium ${cfg.color}`}>
+            <cfg.Icon className="w-3.5 h-3.5" />
+            Status changing to: {cfg.label}
+          </div>
+          <p className="text-xs text-gray-500">
+            To: <span className="font-medium text-gray-800">{user.email ?? "No email on file"}</span>
+          </p>
+          <RichEmailEditor value={message} onChange={setMessage} placeholder="Write your message..." rows={8} />
+          {error && (
+            <div className="flex items-center gap-1.5 text-red-600 text-xs">
+              <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+              {error}
+            </div>
+          )}
         </div>
 
-        <p className="text-xs text-gray-500 mb-1">
-          To: <span className="font-medium text-gray-800">{user.email ?? "No email on file"}</span>
-        </p>
-
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-3 mb-1.5">Email Message</p>
-        <textarea
-          value={message}
-          onChange={(e) => { setMessage(e.target.value); setError(""); }}
-          rows={7}
-          className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-          placeholder="Write your message here..."
-        />
-
-        {error && (
-          <div className="flex items-center gap-1.5 text-red-600 text-xs mt-1.5">
-            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
-            {error}
-          </div>
-        )}
-
-        {sent ? (
-          <div className="flex items-center justify-center gap-2 text-green-700 font-medium text-sm mt-3 py-2.5 bg-green-50 rounded-xl">
-            <CheckCircle2 className="w-4 h-4" />
-            Email sent!
-          </div>
-        ) : (
-          <div className="flex gap-2 mt-3">
-            <button
-              onClick={onClose}
-              className="flex-1 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium"
-            >
-              Skip
-            </button>
-            <button
-              onClick={send}
-              disabled={sending || !user.email}
-              className="flex-1 py-2.5 bg-green-600 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              <Send className="w-3.5 h-3.5" />
-              {sending ? "Sending…" : "Send Email"}
-            </button>
-          </div>
-        )}
-
-        {!user.email && (
-          <p className="text-xs text-amber-600 mt-2 text-center">This user has no email address on file.</p>
-        )}
+        <div className="px-5 py-4 border-t border-gray-100">
+          {sent ? (
+            <div className="flex items-center justify-center gap-2 text-green-700 font-medium text-sm py-2.5 bg-green-50 rounded-xl">
+              <CheckCircle2 className="w-4 h-4" />
+              Email sent!
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <button onClick={onClose} className="flex-1 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium">
+                Skip
+              </button>
+              <button
+                onClick={send}
+                disabled={sending || !user.email}
+                className="flex-1 py-2.5 bg-green-600 text-white rounded-xl text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <Send className="w-3.5 h-3.5" />
+                {sending ? "Sending…" : "Send Email"}
+              </button>
+            </div>
+          )}
+          {!user.email && (
+            <p className="text-xs text-amber-600 mt-2 text-center">This user has no email address on file.</p>
+          )}
+        </div>
       </div>
     </>
   );
 }
+
+// ── Send Custom Email Panel ────────────────────────────────────────────────
 
 function SendEmailPanel({ user, onClose }: { user: AdminUser; onClose: () => void }) {
   const [subject, setSubject] = useState("");
@@ -198,16 +497,7 @@ function SendEmailPanel({ user, onClose }: { user: AdminUser; onClose: () => voi
           className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-500"
         />
       </div>
-      <div>
-        <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Message</p>
-        <textarea
-          value={message}
-          onChange={(e) => { setMessage(e.target.value); setError(""); }}
-          placeholder="Write your message here..."
-          rows={5}
-          className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-        />
-      </div>
+      <RichEmailEditor value={message} onChange={(v) => { setMessage(v); setError(""); }} placeholder="Write your message here..." rows={5} />
       {error && (
         <div className="flex items-center gap-1.5 text-red-600 text-xs">
           <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
@@ -229,13 +519,9 @@ function SendEmailPanel({ user, onClose }: { user: AdminUser; onClose: () => voi
   );
 }
 
-function KycBottomSheet({
-  user,
-  onClose,
-}: {
-  user: AdminUser;
-  onClose: () => void;
-}) {
+// ── Bottom Sheet ───────────────────────────────────────────────────────────
+
+function KycBottomSheet({ user, onClose }: { user: AdminUser; onClose: () => void }) {
   const qc = useQueryClient();
   const [kycLink, setKycLink] = useState(user.kycLink ?? "");
   const [kycNotes, setKycNotes] = useState(user.kycNotes ?? "");
@@ -243,6 +529,15 @@ function KycBottomSheet({
   const [kycLinkError, setKycLinkError] = useState("");
   const [showEmailPanel, setShowEmailPanel] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<AdminUser["kycStatus"] | null>(null);
+  const [showClearWaiting, setShowClearWaiting] = useState(false);
+
+  // Use live user data (refetch to get waiting state)
+  const { data: liveUsers } = useQuery<AdminUser[]>({
+    queryKey: ["/api/admin/users"],
+    queryFn: () => fetch("/api/admin/users").then((r) => r.json()),
+  });
+  const liveUser = liveUsers?.find((u) => u.id === user.id) ?? user;
+  const userIsWaiting = isWaiting(liveUser);
 
   const updateUser = useMutation({
     mutationFn: (patch: Partial<AdminUser>) =>
@@ -284,8 +579,16 @@ function KycBottomSheet({
 
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
           <div>
-            <p className="font-semibold text-gray-900">{user.fullName ?? user.username}</p>
-            <p className="text-xs text-gray-500">{user.email ?? user.phone ?? `@${user.username}`}</p>
+            <div className="flex items-center gap-2">
+              <p className="font-semibold text-gray-900">{liveUser.fullName ?? liveUser.username}</p>
+              {userIsWaiting && (
+                <span className="flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                  <Hourglass className="w-3 h-3" />
+                  Waiting ({waitingMinutes(liveUser)}m)
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-gray-500">{liveUser.email ?? liveUser.phone ?? `@${liveUser.username}`}</p>
           </div>
           <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100">
             <X className="w-5 h-5 text-gray-500" />
@@ -293,6 +596,28 @@ function KycBottomSheet({
         </div>
 
         <div className="overflow-y-auto flex-1 px-5 py-4 space-y-5">
+
+          {/* Waiting period control */}
+          {userIsWaiting && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Hourglass className="w-4 h-4 text-amber-600" />
+                <p className="text-sm font-semibold text-amber-800">User is in Waiting Period</p>
+              </div>
+              <p className="text-xs text-amber-700 leading-relaxed mb-3">
+                This user submitted their KYC details and is waiting for you to complete the account setup.
+                Approx. <strong>{waitingMinutes(liveUser)} minutes</strong> remaining on the countdown.
+              </p>
+              <button
+                onClick={() => setShowClearWaiting(true)}
+                className="w-full py-2.5 bg-amber-500 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+              >
+                <Hourglass className="w-4 h-4" />
+                End Waiting Period & Notify User
+              </button>
+            </div>
+          )}
+
           {/* KYC Status */}
           <div>
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">KYC Status</p>
@@ -303,7 +628,7 @@ function KycBottomSheet({
                     key={status}
                     onClick={() => setStatus(status)}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-medium border-2 transition-all ${
-                      user.kycStatus === status
+                      liveUser.kycStatus === status
                         ? `${color} border-current`
                         : "border-transparent bg-gray-50 text-gray-500 hover:bg-gray-100"
                     }`}
@@ -327,16 +652,11 @@ function KycBottomSheet({
                 placeholder="https://kyc-provider.com/session/..."
                 className={`flex-1 text-sm border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-500 ${kycLinkError ? "border-red-400" : "border-gray-200"}`}
               />
-              <button
-                onClick={saveLink}
-                className="px-3 py-2.5 bg-green-600 text-white rounded-xl text-sm font-medium"
-              >
+              <button onClick={saveLink} className="px-3 py-2.5 bg-green-600 text-white rounded-xl text-sm font-medium">
                 Save
               </button>
             </div>
-            {kycLinkError && (
-              <p className="text-xs text-red-500 mt-1">{kycLinkError}</p>
-            )}
+            {kycLinkError && <p className="text-xs text-red-500 mt-1">{kycLinkError}</p>}
             {kycLink && (
               <button
                 onClick={() => setShowIframe(!showIframe)}
@@ -353,22 +673,11 @@ function KycBottomSheet({
               <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-200 bg-gray-100">
                 <Link2 className="w-3.5 h-3.5 text-gray-500" />
                 <p className="text-xs text-gray-500 truncate flex-1">{kycLink}</p>
-                <a
-                  href={kycLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-green-700 font-medium flex-shrink-0"
-                >
+                <a href={kycLink} target="_blank" rel="noopener noreferrer" className="text-xs text-green-700 font-medium flex-shrink-0">
                   Open tab
                 </a>
               </div>
-              <iframe
-                src={kycLink}
-                className="w-full"
-                style={{ height: 420 }}
-                title="KYC Provider"
-                allow="camera; microphone"
-              />
+              <iframe src={kycLink} className="w-full" style={{ height: 420 }} title="KYC Provider" allow="camera; microphone" />
             </div>
           )}
 
@@ -390,7 +699,7 @@ function KycBottomSheet({
             </button>
           </div>
 
-          {/* Send Email Panel */}
+          {/* Send Custom Email */}
           <div>
             <button
               onClick={() => setShowEmailPanel(!showEmailPanel)}
@@ -402,21 +711,19 @@ function KycBottomSheet({
               </div>
               <ChevronDown className={`w-4 h-4 transition-transform ${showEmailPanel ? "rotate-180" : ""}`} />
             </button>
-            {showEmailPanel && (
-              <SendEmailPanel user={user} onClose={() => setShowEmailPanel(false)} />
-            )}
+            {showEmailPanel && <SendEmailPanel user={liveUser} onClose={() => setShowEmailPanel(false)} />}
           </div>
 
           {/* User Details */}
           <div className="bg-gray-50 rounded-xl p-4 space-y-2">
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">User Details</p>
             {[
-              ["Username", user.username],
-              ["Full Name", user.fullName],
-              ["Email", user.email],
-              ["Phone", user.phone],
-              ["City", user.city],
-              ["ID Card No.", user.idCardNumber],
+              ["Username", liveUser.username],
+              ["Full Name", liveUser.fullName],
+              ["Email", liveUser.email],
+              ["Phone", liveUser.phone],
+              ["City", liveUser.city],
+              ["ID Card No.", liveUser.idCardNumber],
             ].map(([label, val]) =>
               val ? (
                 <div key={label} className="flex justify-between text-sm">
@@ -429,18 +736,30 @@ function KycBottomSheet({
         </div>
       </div>
 
-      {/* KYC status change email dialog */}
       {pendingStatus && (
         <KycEmailDialog
-          user={user}
+          user={liveUser}
           newStatus={pendingStatus}
           onClose={() => setPendingStatus(null)}
           onSent={() => setPendingStatus(null)}
         />
       )}
+
+      {showClearWaiting && (
+        <ClearWaitingDialog
+          user={liveUser}
+          onClose={() => setShowClearWaiting(false)}
+          onCleared={() => {
+            setShowClearWaiting(false);
+            qc.invalidateQueries({ queryKey: ["/api/admin/users"] });
+          }}
+        />
+      )}
     </>
   );
 }
+
+// ── Main List ──────────────────────────────────────────────────────────────
 
 export default function UsersKyc() {
   const [selected, setSelected] = useState<AdminUser | null>(null);
@@ -449,10 +768,15 @@ export default function UsersKyc() {
   const { data: users = [], isLoading } = useQuery<AdminUser[]>({
     queryKey: ["/api/admin/users"],
     queryFn: () => fetch("/api/admin/users").then((r) => r.json()),
+    refetchInterval: 30_000,
   });
 
   const filtered =
-    filter === "all" ? users : users.filter((u) => u.kycStatus === filter);
+    filter === "all" ? users : filter === "waiting"
+      ? users.filter(isWaiting)
+      : users.filter((u) => u.kycStatus === filter);
+
+  const waitingCount = users.filter(isWaiting).length;
 
   if (isLoading) {
     return (
@@ -467,7 +791,14 @@ export default function UsersKyc() {
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-800">Users & KYC</h2>
+        <div>
+          <h2 className="text-lg font-semibold text-gray-800">Users & KYC</h2>
+          {waitingCount > 0 && (
+            <p className="text-xs text-amber-600 font-medium mt-0.5">
+              {waitingCount} user{waitingCount > 1 ? "s" : ""} waiting for setup
+            </p>
+          )}
+        </div>
         <div className="relative">
           <select
             value={filter}
@@ -475,6 +806,7 @@ export default function UsersKyc() {
             className="text-sm border border-gray-200 rounded-lg pl-3 pr-8 py-1.5 appearance-none bg-white"
           >
             <option value="all">All</option>
+            <option value="waiting">⏳ Waiting</option>
             <option value="not_submitted">Not Submitted</option>
             <option value="pending">Pending</option>
             <option value="verified">Verified</option>
@@ -491,14 +823,19 @@ export default function UsersKyc() {
       <div className="space-y-2">
         {filtered.map((user) => {
           const cfg = kycConfig[user.kycStatus];
+          const waiting = isWaiting(user);
           return (
             <button
               key={user.id}
               onClick={() => setSelected(user)}
-              className="w-full bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100 flex items-center gap-3 text-left hover:border-green-200 transition-colors"
+              className={`w-full bg-white rounded-xl px-4 py-3 shadow-sm border flex items-center gap-3 text-left transition-colors ${
+                waiting
+                  ? "border-amber-200 hover:border-amber-300"
+                  : "border-gray-100 hover:border-green-200"
+              }`}
             >
-              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                <span className="text-green-700 font-bold text-sm">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${waiting ? "bg-amber-100" : "bg-green-100"}`}>
+                <span className={`font-bold text-sm ${waiting ? "text-amber-700" : "text-green-700"}`}>
                   {(user.fullName ?? user.username).charAt(0).toUpperCase()}
                 </span>
               </div>
@@ -510,19 +847,24 @@ export default function UsersKyc() {
                   {user.email ?? user.phone ?? `@${user.username}`}
                 </p>
               </div>
-              <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${cfg.color}`}>
-                {cfg.label}
-              </span>
+              <div className="flex flex-col items-end gap-1">
+                {waiting && (
+                  <span className="flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                    <Hourglass className="w-3 h-3" />
+                    {waitingMinutes(user)}m
+                  </span>
+                )}
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${cfg.color}`}>
+                  {cfg.label}
+                </span>
+              </div>
             </button>
           );
         })}
       </div>
 
       {selected && (
-        <KycBottomSheet
-          user={selected}
-          onClose={() => setSelected(null)}
-        />
+        <KycBottomSheet user={selected} onClose={() => setSelected(null)} />
       )}
     </div>
   );

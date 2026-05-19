@@ -3,6 +3,34 @@ import { Resend } from "resend";
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = `BorrowMe2K <hello@borrowme2k.com>`;
 
+/** Convert [text](url) markdown links → <a> HTML tags, and escape the rest */
+function markdownLinksToHtml(text: string): string {
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  // Convert [label](url) → clickable anchor
+  return escaped.replace(
+    /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
+    (_match, label, url) =>
+      `<a href="${url}" style="color:#15803d;font-weight:600;">${label}</a>`,
+  );
+}
+
+/** Render plain message text as HTML paragraphs, preserving links */
+function renderMessageHtml(msg: string): string {
+  return msg
+    .split(/\n\n+/)
+    .map((para) => {
+      const inner = para
+        .split("\n")
+        .map((line) => markdownLinksToHtml(line))
+        .join("<br/>");
+      return `<p style="color:#374151;font-size:15px;line-height:1.7;margin:0 0 16px;">${inner}</p>`;
+    })
+    .join("");
+}
+
 export async function sendLoanApplicationEmails(opts: {
   applicantEmail: string;
   applicantName: string;
@@ -69,14 +97,19 @@ export async function sendAdminMessageToUser(opts: {
   toName: string;
   subject: string;
   bodyHtml: string;
+  kycLink?: string;
 }): Promise<void> {
-  const { toEmail, toName, subject, bodyHtml } = opts;
-  const safeBody = bodyHtml
-    .replace(/\n/g, "<br/>")
-    .replace(/</g, (c, i, s) => {
-      const before = s.slice(0, i);
-      return /&(?:#\d+|[a-z]+);$|<br\s*\/?>$|<strong>$|<\/strong>$/.test(before + c) ? c : "&lt;";
-    });
+  const { toEmail, toName, subject, bodyHtml, kycLink } = opts;
+  const bodyRendered = renderMessageHtml(bodyHtml);
+
+  const kycButtonBlock = kycLink
+    ? `<div style="text-align:center;margin:24px 0;">
+        <a href="${kycLink}" style="display:inline-block;background:#15803d;color:#fff;font-weight:700;font-size:15px;padding:14px 32px;border-radius:10px;text-decoration:none;">
+          Start Identity Verification →
+        </a>
+        <p style="color:#6b7280;font-size:11px;margin-top:8px;">Or copy this link: <a href="${kycLink}" style="color:#15803d;">${kycLink}</a></p>
+      </div>`
+    : "";
 
   await resend.emails.send({
     from: FROM,
@@ -86,7 +119,8 @@ export async function sendAdminMessageToUser(opts: {
       <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:32px;background:#f9fafb;border-radius:12px;">
         <h2 style="color:#15803d;margin-bottom:4px;">BorrowMe2K</h2>
         <p style="color:#374151;font-size:15px;">Hi <strong>${toName}</strong>,</p>
-        <div style="color:#374151;font-size:15px;line-height:1.7;white-space:pre-wrap;">${bodyHtml}</div>
+        ${bodyRendered}
+        ${kycButtonBlock}
         <p style="color:#6b7280;font-size:12px;margin-top:28px;border-top:1px solid #e5e7eb;padding-top:16px;">— The BorrowMe2K Team</p>
       </div>
     `,
@@ -117,6 +151,7 @@ export async function sendKycStatusEmail(opts: {
 
   const subject = subjectMap[newStatus] ?? "Update on your account — BorrowMe2K";
   const accent = accentMap[newStatus] ?? "#1d4ed8";
+  const bodyRendered = renderMessageHtml(customMessage);
 
   await resend.emails.send({
     from: FROM,
@@ -127,7 +162,9 @@ export async function sendKycStatusEmail(opts: {
       <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:32px;background:#f9fafb;border-radius:12px;">
         <h2 style="color:${accent};margin-bottom:4px;">BorrowMe2K</h2>
         <p style="color:#374151;font-size:15px;">Hi <strong>${toName}</strong>,</p>
-        <div style="color:#374151;font-size:15px;line-height:1.7;white-space:pre-wrap;background:#fff;border-radius:8px;padding:20px;border:1px solid #e5e7eb;margin:16px 0;">${customMessage}</div>
+        <div style="background:#fff;border-radius:8px;padding:20px;border:1px solid #e5e7eb;margin:16px 0;">
+          ${bodyRendered}
+        </div>
         <p style="color:#6b7280;font-size:12px;margin-top:24px;border-top:1px solid #e5e7eb;padding-top:16px;">— The BorrowMe2K Team</p>
       </div>
     `,
