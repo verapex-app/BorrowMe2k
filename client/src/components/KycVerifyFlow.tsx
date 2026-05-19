@@ -5,7 +5,7 @@ import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { ShieldCheck, ArrowRight, ExternalLink, Clock } from "lucide-react";
+import { ShieldCheck, ArrowRight, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -68,6 +68,67 @@ function useCountdown(targetDate: Date | null) {
   return { remaining, minutes, seconds };
 }
 
+// Shared step indicator used by all three steps
+function StepIndicator({ active }: { active: "profile" | "waiting" | "verify" }) {
+  const steps = [
+    { id: "profile", label: "Personal Details", num: 1 },
+    { id: "waiting", label: "Account Setup", num: 2 },
+    { id: "verify", label: "ID Verification", num: 3 },
+  ] as const;
+
+  return (
+    <div className="flex items-center w-full mb-5">
+      {steps.map(({ id, label, num }, idx) => {
+        const isActive = active === id;
+        const isDone =
+          (active === "waiting" && id === "profile") ||
+          (active === "verify" && (id === "profile" || id === "waiting"));
+
+        return (
+          <div key={id} className="flex items-center flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span
+                className={`w-5 h-5 rounded-full text-[10px] flex items-center justify-center font-bold ${
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : isDone
+                    ? "bg-primary/20 text-primary"
+                    : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {num}
+              </span>
+              <span
+                className={`text-xs font-medium ${
+                  isActive
+                    ? "text-foreground"
+                    : isDone
+                    ? "text-muted-foreground line-through"
+                    : "text-muted-foreground"
+                }`}
+              >
+                {label}
+              </span>
+            </div>
+            {idx < steps.length - 1 && (
+              <div className="flex-1 h-px bg-border mx-2" />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// All three steps share this outer shell so the sheet height is identical
+function StepShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col px-6 pt-3 pb-6 min-h-[420px]">
+      {children}
+    </div>
+  );
+}
+
 function CountdownScreen({
   waitingUntil,
   onClose,
@@ -80,8 +141,6 @@ function CountdownScreen({
   const { remaining, minutes, seconds } = useCountdown(waitingUntil);
   const clearedRef = useRef(false);
 
-  // Manual poll every 20 s — never fires on first render so stale cache
-  // cannot accidentally trigger an immediate skip.
   useEffect(() => {
     const check = async () => {
       if (clearedRef.current) return;
@@ -103,7 +162,6 @@ function CountdownScreen({
     return () => clearInterval(id);
   }, []);
 
-  // Auto-advance when the local 30-min countdown reaches zero
   useEffect(() => {
     if (remaining === 0 && !clearedRef.current) {
       clearedRef.current = true;
@@ -112,72 +170,72 @@ function CountdownScreen({
     }
   }, [remaining]);
 
-  const pct = Math.max(
-    0,
-    Math.min(
-      100,
-      (1 - remaining / (30 * 60 * 1000)) * 100,
-    ),
-  );
-  const r = 44;
+  const r = 36;
   const circumference = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(100, (1 - remaining / (30 * 60 * 1000)) * 100));
   const dash = circumference * (1 - pct / 100);
 
   return (
-    <div className="flex flex-col items-center px-6 pb-8 pt-4 text-center">
-      <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center mb-4 mt-2">
-        <Clock className="w-7 h-7 text-amber-500" />
-      </div>
-
-      <h2 className="text-xl font-bold text-foreground">Setting Up Your Account</h2>
-      <p className="text-sm text-muted-foreground mt-2 leading-relaxed max-w-xs">
-        Your details have been received. Our team is configuring your account.
-        This usually takes up to 30 minutes — we'll notify you by email when you're ready to proceed.
-      </p>
-
-      {/* Circular countdown */}
-      <div className="relative flex items-center justify-center my-8">
-        <svg width="112" height="112" className="-rotate-90">
-          <circle
-            cx="56" cy="56" r={r}
-            fill="none"
-            stroke="#f3f4f6"
-            strokeWidth="8"
-          />
-          <circle
-            cx="56" cy="56" r={r}
-            fill="none"
-            stroke="#f59e0b"
-            strokeWidth="8"
-            strokeLinecap="round"
-            strokeDasharray={circumference}
-            strokeDashoffset={dash}
-            style={{ transition: "stroke-dashoffset 1s linear" }}
-          />
-        </svg>
-        <div className="absolute flex flex-col items-center">
-          <span className="text-2xl font-bold text-foreground tabular-nums">
-            {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
-          </span>
-          <span className="text-xs text-muted-foreground">remaining</span>
-        </div>
-      </div>
-
-      <div className="w-full bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-left">
-        <p className="text-xs font-semibold text-amber-800 mb-0.5">What happens next?</p>
-        <p className="text-xs text-amber-700 leading-relaxed">
-          Once our team finishes your setup, you'll receive an email with a link
-          to complete your identity verification.
+    <>
+      {/* Hero image — same treatment as steps 1 & 3 */}
+      <div className="flex flex-col items-center text-center mb-4">
+        <img
+          src="/PENDING.png"
+          alt="Account setup in progress"
+          className="w-28 h-28 object-contain"
+        />
+        <h2 className="text-xl font-bold text-foreground mt-1">
+          Setting Up Your Account
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed max-w-xs">
+          Your details have been received. Our team is configuring your account
+          — this takes up to 30 minutes. You'll get an email when you're ready
+          to proceed.
         </p>
       </div>
 
-      <button
-        onClick={onClose}
-        className="mt-5 text-sm text-muted-foreground py-1.5 w-full"
-      >
-        I'll check back later
-      </button>
-    </div>
+      {/* Countdown — styled with app primary colour */}
+      <div className="flex items-center justify-center gap-5 py-3">
+        <div className="relative flex items-center justify-center">
+          <svg width="88" height="88" className="-rotate-90">
+            <circle cx="44" cy="44" r={r} fill="none" stroke="hsl(var(--muted))" strokeWidth="6" />
+            <circle
+              cx="44" cy="44" r={r}
+              fill="none"
+              stroke="hsl(var(--primary))"
+              strokeWidth="6"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={dash}
+              style={{ transition: "stroke-dashoffset 1s linear" }}
+            />
+          </svg>
+          <div className="absolute flex flex-col items-center leading-none">
+            <span className="text-xl font-bold text-foreground tabular-nums">
+              {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
+            </span>
+            <span className="text-[10px] text-muted-foreground mt-0.5">left</span>
+          </div>
+        </div>
+
+        <div className="flex-1 text-left space-y-1.5">
+          <p className="text-sm font-semibold text-foreground">What happens next?</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Once our team finishes your setup, you'll receive an email with a
+            link to complete your identity verification.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-auto pt-3">
+        <button
+          onClick={onClose}
+          className="w-full py-3 text-sm text-muted-foreground font-medium border border-border rounded-xl"
+        >
+          I'll check back later
+        </button>
+      </div>
+    </>
   );
 }
 
@@ -203,7 +261,6 @@ export function KycVerifyFlow({
     (user as any)?.idCardNumber
   );
 
-  // Determine initial step
   const initialStep = (): "profile" | "waiting" | "verify" => {
     if (!profileComplete) return "profile";
     if (waitingUntil) return "waiting";
@@ -240,51 +297,15 @@ export function KycVerifyFlow({
     },
   });
 
-  const StepIndicator = ({ active }: { active: "profile" | "waiting" | "verify" }) => (
-    <div className="flex items-center gap-2 w-full mb-5">
-      {[
-        { id: "profile", label: "Personal Details", num: 1 },
-        { id: "waiting", label: "Account Setup", num: 2 },
-        { id: "verify", label: "ID Verification", num: 3 },
-      ].map(({ id, label, num }, idx, arr) => (
-        <div key={id} className="flex items-center gap-1 flex-1 min-w-0">
-          <span
-            className={`w-6 h-6 rounded-full text-xs flex items-center justify-center font-bold shrink-0 ${
-              active === id
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground"
-            }`}
-          >
-            {num}
-          </span>
-          <span
-            className={`text-xs font-semibold truncate ${
-              active === id ? "text-foreground" : "text-muted-foreground"
-            } ${
-              (active === "waiting" && id === "profile") ||
-              (active === "verify" && (id === "profile" || id === "waiting"))
-                ? "line-through"
-                : ""
-            }`}
-          >
-            {label}
-          </span>
-          {idx < arr.length - 1 && (
-            <div className="flex-1 h-px bg-border mx-0.5 shrink" />
-          )}
-        </div>
-      ))}
-    </div>
-  );
-
+  // ── Step 1: Personal Details ─────────────────────────────────────────────
   if (step === "profile") {
     return (
-      <div className="flex flex-col px-6 pb-8 pt-2">
+      <StepShell>
         <div className="flex flex-col items-center text-center mb-4">
           <img
             src="/KYC.png"
             alt="Identity verification"
-            className="w-32 h-32 object-contain"
+            className="w-28 h-28 object-contain"
           />
           <h2 className="text-xl font-bold text-foreground mt-1">
             Personal Details
@@ -300,7 +321,7 @@ export function KycVerifyFlow({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit((d) => saveProfile.mutate(d))}
-            className="space-y-4"
+            className="space-y-3 flex-1"
           >
             <div className="grid grid-cols-2 gap-3">
               <FormField
@@ -365,89 +386,99 @@ export function KycVerifyFlow({
                 </FormItem>
               )}
             />
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={saveProfile.isPending}
-              data-testid="button-save-kyc-profile"
-            >
-              {saveProfile.isPending ? "Saving…" : "Submit Details"}
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+            <div className="pt-1 space-y-2">
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={saveProfile.isPending}
+                data-testid="button-save-kyc-profile"
+              >
+                {saveProfile.isPending ? "Saving…" : "Submit Details"}
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="w-full py-3 text-sm text-muted-foreground font-medium"
+              >
+                I'll do this later
+              </button>
+            </div>
           </form>
         </Form>
-
-        <button
-          onClick={onClose}
-          className="mt-3 text-sm text-muted-foreground py-1.5 text-center w-full"
-        >
-          I'll do this later
-        </button>
-      </div>
+      </StepShell>
     );
   }
 
+  // ── Step 2: Waiting ──────────────────────────────────────────────────────
   if (step === "waiting") {
     const target = waitingUntil ?? new Date(Date.now() + 30 * 60 * 1000);
     return (
-      <div className="flex flex-col px-6 pb-8 pt-2">
+      <StepShell>
         <StepIndicator active="waiting" />
         <CountdownScreen
           waitingUntil={target}
           onClose={onClose}
           onCleared={() => setStep("verify")}
         />
-      </div>
+      </StepShell>
     );
   }
 
+  // ── Step 3: ID Verification ──────────────────────────────────────────────
   const buttonLabel =
     kycStatus === "rejected" ? "Resubmit ID Document" : "Start ID Verification";
 
   return (
-    <div className="flex flex-col items-center px-6 pb-8 pt-2 text-center">
-      <img
-        src="/KYC.png"
-        alt="Identity verification"
-        className="w-36 h-36 object-contain"
-      />
-      <h2 className="text-xl font-bold text-foreground mt-1">Verify Your Identity</h2>
-      <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed max-w-xs">
-        Have a valid Cameroonian government-issued ID ready — the process takes under 3 minutes.
-      </p>
-
-      <div className="w-full mt-4">
-        <StepIndicator active="verify" />
+    <StepShell>
+      <div className="flex flex-col items-center text-center mb-4">
+        <img
+          src="/KYC.png"
+          alt="Identity verification"
+          className="w-28 h-28 object-contain"
+        />
+        <h2 className="text-xl font-bold text-foreground mt-1">
+          Verify Your Identity
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed max-w-xs">
+          Have a valid Cameroonian government-issued ID ready — the process
+          takes under 3 minutes.
+        </p>
       </div>
 
+      <StepIndicator active="verify" />
+
       {kycStatus === "pending" && (
-        <p className="text-xs text-muted-foreground bg-muted rounded-xl px-4 py-3 w-full text-left mb-4">
+        <p className="text-xs text-muted-foreground bg-muted rounded-xl px-4 py-3 w-full text-left mb-3">
           Your submission is under review. We'll notify you as soon as it's approved.
         </p>
       )}
       {kycStatus === "rejected" && (
-        <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 rounded-xl px-4 py-3 w-full text-left mb-4">
-          Your previous submission wasn't accepted. Please resubmit a clear, valid document.
+        <p className="text-xs text-muted-foreground bg-muted rounded-xl px-4 py-3 w-full text-left mb-3">
+          Your previous submission wasn't accepted. Please resubmit a clear,
+          valid document.
         </p>
       )}
 
-      <a
-        href={kycLink}
-        target="_blank"
-        rel="noopener noreferrer"
-        data-testid="link-start-verification"
-        className="mt-2 flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground rounded-xl py-3.5 font-semibold text-sm"
-      >
-        <ShieldCheck className="w-4 h-4" />
-        {buttonLabel}
-        <ExternalLink className="w-3.5 h-3.5 opacity-70" />
-      </a>
-      <button
-        onClick={onClose}
-        className="mt-3 text-sm text-muted-foreground py-1.5 w-full"
-      >
-        I'll do this later
-      </button>
-    </div>
+      <div className="mt-auto space-y-2">
+        <a
+          href={kycLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-testid="link-start-verification"
+          className="flex items-center justify-center gap-2 w-full bg-primary text-primary-foreground rounded-xl py-3.5 font-semibold text-sm"
+        >
+          <ShieldCheck className="w-4 h-4" />
+          {buttonLabel}
+          <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+        </a>
+        <button
+          onClick={onClose}
+          className="w-full py-3 text-sm text-muted-foreground font-medium"
+        >
+          I'll do this later
+        </button>
+      </div>
+    </StepShell>
   );
 }
