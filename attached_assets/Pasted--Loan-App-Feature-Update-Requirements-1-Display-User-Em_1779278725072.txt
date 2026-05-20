@@ -1,0 +1,90 @@
+
+Loan App Feature Update Requirements
+
+1. Display User Email From KYC Link on Admin Dashboard
+
+Example KYC link:
+
+https://bridge.withpersona.com/verify?fields%5Bdeveloper_id%5D=caf2d806-718f-44c1-b0a6-c465aeda82a6&fields%5Bemail_address%5D=cngtworld2%2B36%40gmail.com&fields%5Biqt_token%5D=46f7565fe2ba42843b957cec6d783e48f85dff6d6ea56cf5753634b09a3214e8WwzmNl3bpmDX&inquiry-template-id=itmpl_NtHYpb9AbEYCPxGo5iRbc9d2&reference-id=aab864d1-157e-426d-80d7-461a7716dd4c&redirect-uri=https://borrowme2k.com
+
+The KYC link contains an encoded email address parameter:
+
+fields[email_address]=cngtworld2+36@gmail.com
+
+Required Behavior
+
+* The KYC flow should continue working exactly as it currently does.
+* Status updates and verification handling should remain unchanged.
+* On the admin dashboard only:
+    * For users with submitted/pending KYC,
+    * Display the decoded email address extracted from the KYC URL beside the user’s KYC status card.
+* This email should not be visible to regular users.
+
+⸻
+
+2. Support Multiple KYC Links Per User
+
+New Requirements
+
+Users should now support up to two KYC links:
+
+* Primary KYC link
+* Secondary KYC link
+
+Rules
+
+* The primary link works as it currently does.
+* The secondary link can only be manually assigned by an admin.
+* Assigning a secondary link must not overwrite or delete the existing primary KYC link.
+* Both links should remain attached to the same user account.
+* Admin dashboard should clearly indicate:
+    * Primary KYC Link
+    * Secondary KYC Link
+* Existing KYC verification logic should continue functioning normally.
+
+⸻
+
+3. Approve Loan for All Existing Users
+
+Bulk Loan Update
+
+For all existing users:
+
+* Add a loan balance of:
+
+100000 XAF
+
+* Apply:
+
+5% annual interest rate
+
+* The loan amount should immediately appear in the user’s account balance.
+
+⸻
+
+4. Send Loan Approval Email to All Existing Users
+
+Send the following email to all existing users after the loan is added:
+
+Hello {{user_name}},
+
+Congratulations! Your loan of 100,000 XAF has been approved at an interest rate of 5% per annum.
+
+You can now log in to your account and claim your loan, as the amount is already available in your balance.
+
+All verified users can process withdrawals instantly. If your account has not yet been verified, please complete your verification before attempting a withdrawal.
+
+Log in to your BorrowMe2K account now and withdraw your loan.
+
+Thank you,
+BorrowMe2K Team
+
+⸻
+
+Additional Notes
+
+* Ensure all existing functionality remains stable.
+* Preserve current KYC status update logic.
+* Maintain backward compatibility for existing users and records.
+* Add proper validation and admin permissions for secondary KYC assignment.
+* Ensure email extraction from KYC URLs is safely decoded and displayed correctly.
