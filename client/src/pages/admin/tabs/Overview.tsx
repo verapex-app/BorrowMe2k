@@ -6,7 +6,7 @@ import { formatXAF } from "@/lib/format";
 function BulkLoanApproval() {
   const qc = useQueryClient();
   const [running, setRunning] = useState(false);
-  const [result, setResult] = useState<{ ok: boolean; loansCreated: number; emailsSent: number; totalUsers: number } | null>(null);
+  const [result, setResult] = useState<{ ok: boolean; loansCreated: number; loansFailed: number; emailsQueued: number; totalUsers: number; note?: string } | null>(null);
   const [error, setError] = useState("");
   const [confirmed, setConfirmed] = useState(false);
 
@@ -16,8 +16,13 @@ function BulkLoanApproval() {
     setResult(null);
     try {
       const res = await fetch("/api/admin/bulk-approve-loans", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message ?? "Failed");
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Server returned an unreadable response. Please try again.");
+      }
+      if (!res.ok) throw new Error(data?.message ?? `Server error ${res.status}`);
       setResult(data);
       qc.invalidateQueries({ queryKey: ["/api/admin/stats"] });
     } catch (e: any) {
@@ -36,9 +41,18 @@ function BulkLoanApproval() {
       </p>
 
       {result ? (
-        <div className="flex items-center gap-2 text-green-700 text-sm bg-green-50 rounded-xl px-3 py-2.5">
-          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-          <span>Done — {result.loansCreated} loan{result.loansCreated !== 1 ? "s" : ""} created, {result.emailsSent} email{result.emailsSent !== 1 ? "s" : ""} sent.</span>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2 text-green-700 text-sm bg-green-50 rounded-xl px-3 py-2.5">
+            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+            <span>
+              {result.loansCreated} of {result.totalUsers} loans created
+              {result.loansFailed > 0 && ` (${result.loansFailed} failed)`}
+              {result.emailsQueued > 0 && ` · ${result.emailsQueued} emails queued`}
+            </span>
+          </div>
+          {result.note && (
+            <p className="text-xs text-gray-400 px-1">{result.note}</p>
+          )}
         </div>
       ) : error ? (
         <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-xl px-3 py-2.5 mb-2">

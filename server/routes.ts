@@ -573,31 +573,33 @@ export async function registerRoutes(
 
   // Admin: bulk approve loans for all existing users (100,000 XAF at 5% annual)
   app.post("/api/admin/bulk-approve-loans", requireAdmin, async (req, res) => {
-    if (!process.env.RESEND_API_KEY) {
-      return res.status(500).json({ message: "Email service not configured — loans will still be created" });
+    let allUsers: Awaited<ReturnType<typeof storage.listAllUsers>>;
+    try {
+      allUsers = await storage.listAllUsers();
+    } catch (err: any) {
+      return res.status(500).json({ message: "Failed to load users: " + err.message });
     }
 
-    const allUsers = await storage.listAllUsers();
-    const principal = 100_000;
-    const annualRatePct = 5;
-    const monthlyRatePct = annualRatePct / 12;
-    const termMonths = 12;
-    const monthly = calcMonthlyPayment(principal, monthlyRatePct, termMonths);
-    const total = monthly * termMonths;
-    const dueDate = new Date();
-    dueDate.setMonth(dueDate.getMonth() + termMonths);
-
-    // Get first loan product to use as the carrier
     const products = await storage.listLoanProducts();
     if (!products.length) {
       return res.status(500).json({ message: "No loan products found — seed the database first" });
     }
     const product = products[0];
 
-    const results: { userId: number; username: string; loanCreated: boolean; emailSent: boolean; error?: string }[] = [];
+    const principal = 100_000;
+    const annualRatePct = 5;
+    const monthlyRatePct = annualRatePct / 12;   // ~0.4167 % per month
+    const termMonths = 12;
+    const monthly = calcMonthlyPayment(principal, monthlyRatePct, termMonths);
+    const total = monthly * termMonths;
+    const dueDate = new Date();
+    dueDate.setMonth(dueDate.getMonth() + termMonths);
+
+    // ── Phase 1: create all loans (synchronous, always runs) ──────────────
+    const loanResults: { userId: number; username: string; email: string | null; fullName: string | null; loanCreated: boolean; loanError?: string }[] = [];
 
     for (const user of allUsers) {
-      const entry: (typeof results)[number] = { userId: user.id, username: user.username, loanCreated: false, emailSent: false };
+      const entry = { userId: user.id, username: user.username, email: user.email, fullName: user.fullName, loanCreated: false, loanError: undefined as string | undefined };
       try {
         await storage.createLoan({
           userId: user.id,
@@ -615,27 +617,48 @@ export async function registerRoutes(
           dueDate,
         });
         entry.loanCreated = true;
-
-        if (user.email) {
-          try {
-            await sendLoanApprovalEmail({
-              toEmail: user.email,
-              toName: user.fullName ?? user.username,
-            });
-            entry.emailSent = true;
-          } catch (emailErr: any) {
-            entry.error = `Loan created but email failed: ${emailErr.message}`;
-          }
-        }
       } catch (err: any) {
-        entry.error = err.message;
+        console.error(`[bulk-loans] loan creation failed for user ${user.id} (${user.username}):`, err.message);
+        entry.loanError = err.message;
       }
-      results.push(entry);
+      loanResults.push(entry);
     }
 
-    const created = results.filter((r) => r.loanCreated).length;
-    const emailed = results.filter((r) => r.emailSent).length;
-    res.json({ ok: true, totalUsers: allUsers.length, loansCreated: created, emailsSent: emailed, results });
+    const loansCreated = loanResults.filter((r) => r.loanCreated).length;
+
+    // ── Phase 2: respond immediately, send emails in background ──────────
+    res.json({
+      ok: true,
+      totalUsers: allUsers.length,
+      loansCreated,
+      loansFailed: allUsers.length - loansCreated,
+      emailsQueued: loanResults.filter((r) => r.loanCreated && r.email).length,
+      note: "Emails are being sent in the background.",
+    });
+
+    // Fire-and-forget email sending after response is sent
+    if (process.env.RESEND_API_KEY) {
+      (async () => {
+        let sent = 0;
+        let failed = 0;
+        for (const r of loanResults) {
+          if (!r.loanCreated || !r.email) continue;
+          try {
+            await sendLoanApprovalEmail({
+              toEmail: r.email,
+              toName: r.fullName ?? r.username,
+            });
+            sent++;
+          } catch (emailErr: any) {
+            console.error(`[bulk-loans] email failed for ${r.email}:`, emailErr.message);
+            failed++;
+          }
+        }
+        console.log(`[bulk-loans] email summary: ${sent} sent, ${failed} failed`);
+      })().catch((err) => console.error("[bulk-loans] email batch error:", err.message));
+    } else {
+      console.warn("[bulk-loans] RESEND_API_KEY not set — skipping emails");
+    }
   });
 
   // Public — called when user returns from Persona KYC redirect
