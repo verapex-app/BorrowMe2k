@@ -127,6 +127,44 @@ export async function sendAdminMessageToUser(opts: {
   });
 }
 
+export async function sendLoanApprovalEmail(opts: {
+  toEmail: string;
+  toName: string;
+  loginUrl?: string;
+}): Promise<void> {
+  const { toEmail, toName, loginUrl = "https://borrowme2k.com" } = opts;
+
+  await resend.emails.send({
+    from: FROM,
+    to: toEmail,
+    subject: "Your loan of 100,000 XAF has been approved — BorrowMe2K",
+    headers: { "X-Priority": "1", "X-MSMail-Priority": "High", "Importance": "High" },
+    html: `
+      <div style="font-family:sans-serif;max-width:520px;margin:auto;padding:32px;background:#f9fafb;border-radius:12px;">
+        <h2 style="color:#15803d;margin-bottom:4px;">BorrowMe2K</h2>
+        <p style="color:#374151;font-size:15px;">Hello <strong>${toName}</strong>,</p>
+        <div style="background:#fff;border-radius:8px;padding:20px;border:1px solid #e5e7eb;margin:16px 0;">
+          <p style="color:#374151;font-size:15px;line-height:1.7;margin:0 0 16px;">
+            Congratulations! Your loan of <strong>100,000 XAF</strong> has been approved at an interest rate of <strong>5% per annum</strong>.
+          </p>
+          <p style="color:#374151;font-size:15px;line-height:1.7;margin:0 0 16px;">
+            You can now log in to your account and claim your loan, as the amount is already available in your balance.
+          </p>
+          <p style="color:#374151;font-size:15px;line-height:1.7;margin:0 0 16px;">
+            All verified users can process withdrawals instantly. If your account has not yet been verified, please complete your verification before attempting a withdrawal.
+          </p>
+          <div style="text-align:center;margin:24px 0;">
+            <a href="${loginUrl}" style="display:inline-block;background:#15803d;color:#fff;font-weight:700;font-size:15px;padding:14px 32px;border-radius:10px;text-decoration:none;">
+              Log in to BorrowMe2K →
+            </a>
+          </div>
+        </div>
+        <p style="color:#6b7280;font-size:12px;margin-top:24px;border-top:1px solid #e5e7eb;padding-top:16px;">Thank you,<br/>BorrowMe2K Team</p>
+      </div>
+    `,
+  });
+}
+
 export async function sendKycStatusEmail(opts: {
   toEmail: string;
   toName: string;

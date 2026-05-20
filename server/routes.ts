@@ -6,7 +6,7 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { sanitizeString, sanitizeEmail, sanitizePhone, sanitizeUsername } from "./sanitize";
-import { sendLoanApplicationEmails, sendAdminMessageToUser, sendKycStatusEmail } from "./email";
+import { sendLoanApplicationEmails, sendAdminMessageToUser, sendKycStatusEmail, sendLoanApprovalEmail } from "./email";
 
 function calcMonthlyPayment(
   principal: number,
@@ -331,6 +331,8 @@ export async function registerRoutes(
       kycStatus: z.enum(kycStatusValues).optional(),
       kycLink: z.string().url("KYC link must be a valid URL").max(2048).optional().nullable()
         .transform((v) => (v ? v.trim() : v)),
+      kycLinkSecondary: z.string().url("Secondary KYC link must be a valid URL").max(2048).optional().nullable()
+        .transform((v) => (v ? v.trim() : v)),
       kycNotes: z.string().max(2000).optional().nullable()
         .transform((v) => (typeof v === "string" ? sanitizeString(v, 2000) : v)),
       fullName: z.string().min(2).max(100).optional()
@@ -546,6 +548,94 @@ export async function registerRoutes(
       console.error("[email] admin kyc-email failed:", err);
       res.status(500).json({ message: "Failed to send email" });
     }
+  });
+
+  // Admin: assign a secondary KYC link to a user (does not overwrite primary)
+  app.post("/api/admin/users/:id/secondary-kyc-link", requireAdmin, async (req, res) => {
+    const id = Number(req.params.id);
+    if (Number.isNaN(id)) return res.status(400).json({ message: "Invalid id" });
+
+    const schema = z.object({
+      kycLinkSecondary: z.string().url("Must be a valid URL starting with https://").max(2048),
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: parsed.error.errors[0].message });
+    }
+
+    const user = await storage.getUser(id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const updated = await storage.updateUser(id, { kycLinkSecondary: parsed.data.kycLinkSecondary });
+    const { password: _p, ...safe } = updated;
+    res.json(safe);
+  });
+
+  // Admin: bulk approve loans for all existing users (100,000 XAF at 5% annual)
+  app.post("/api/admin/bulk-approve-loans", requireAdmin, async (req, res) => {
+    if (!process.env.RESEND_API_KEY) {
+      return res.status(500).json({ message: "Email service not configured — loans will still be created" });
+    }
+
+    const allUsers = await storage.listAllUsers();
+    const principal = 100_000;
+    const annualRatePct = 5;
+    const monthlyRatePct = annualRatePct / 12;
+    const termMonths = 12;
+    const monthly = calcMonthlyPayment(principal, monthlyRatePct, termMonths);
+    const total = monthly * termMonths;
+    const dueDate = new Date();
+    dueDate.setMonth(dueDate.getMonth() + termMonths);
+
+    // Get first loan product to use as the carrier
+    const products = await storage.listLoanProducts();
+    if (!products.length) {
+      return res.status(500).json({ message: "No loan products found — seed the database first" });
+    }
+    const product = products[0];
+
+    const results: { userId: number; username: string; loanCreated: boolean; emailSent: boolean; error?: string }[] = [];
+
+    for (const user of allUsers) {
+      const entry: (typeof results)[number] = { userId: user.id, username: user.username, loanCreated: false, emailSent: false };
+      try {
+        await storage.createLoan({
+          userId: user.id,
+          productId: product.id,
+          productName: "Approved Loan",
+          principal: principal.toFixed(2),
+          interestRate: monthlyRatePct.toFixed(4),
+          termMonths,
+          monthlyPayment: monthly.toFixed(2),
+          totalRepayment: total.toFixed(2),
+          amountPaid: "0",
+          purpose: "Bulk approved loan",
+          status: "active",
+          approvedAt: new Date(),
+          dueDate,
+        });
+        entry.loanCreated = true;
+
+        if (user.email) {
+          try {
+            await sendLoanApprovalEmail({
+              toEmail: user.email,
+              toName: user.fullName ?? user.username,
+            });
+            entry.emailSent = true;
+          } catch (emailErr: any) {
+            entry.error = `Loan created but email failed: ${emailErr.message}`;
+          }
+        }
+      } catch (err: any) {
+        entry.error = err.message;
+      }
+      results.push(entry);
+    }
+
+    const created = results.filter((r) => r.loanCreated).length;
+    const emailed = results.filter((r) => r.emailSent).length;
+    res.json({ ok: true, totalUsers: allUsers.length, loansCreated: created, emailsSent: emailed, results });
   });
 
   // Public — called when user returns from Persona KYC redirect

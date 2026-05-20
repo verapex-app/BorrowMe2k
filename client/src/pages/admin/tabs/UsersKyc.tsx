@@ -15,10 +15,28 @@ type AdminUser = {
   city: string | null;
   kycStatus: "not_submitted" | "pending" | "verified" | "rejected";
   kycLink: string | null;
+  kycLinkSecondary: string | null;
   kycNotes: string | null;
   idCardNumber?: string | null;
   kycWaitingUntil?: string | null;
 };
+
+/** Extract the email address embedded in a Persona KYC URL */
+function extractKycEmail(kycLink: string | null): string | null {
+  if (!kycLink) return null;
+  try {
+    const url = new URL(kycLink);
+    // Try both encoded and decoded param names
+    const encoded = url.searchParams.get("fields[email_address]");
+    if (encoded) return decodeURIComponent(encoded);
+    // Some links may have the param with percent-encoded brackets in the raw string
+    const raw = kycLink.match(/fields(?:%5B|\[)email_address(?:%5D|\])=([^&]+)/i);
+    if (raw) return decodeURIComponent(raw[1]);
+  } catch {
+    // not a valid URL
+  }
+  return null;
+}
 
 const kycConfig = {
   not_submitted: { label: "Not Submitted", color: "bg-gray-100 text-gray-600", Icon: Shield },
@@ -619,9 +637,13 @@ function DeleteUserDialog({
 function KycBottomSheet({ user, onClose }: { user: AdminUser; onClose: () => void }) {
   const qc = useQueryClient();
   const [kycLink, setKycLink] = useState(user.kycLink ?? "");
+  const [kycLinkSecondary, setKycLinkSecondary] = useState(user.kycLinkSecondary ?? "");
   const [kycNotes, setKycNotes] = useState(user.kycNotes ?? "");
   const [showIframe, setShowIframe] = useState(false);
+  const [showIframeSecondary, setShowIframeSecondary] = useState(false);
   const [kycLinkError, setKycLinkError] = useState("");
+  const [kycLinkSecondaryError, setKycLinkSecondaryError] = useState("");
+  const [savingSecondary, setSavingSecondary] = useState(false);
   const [showEmailPanel, setShowEmailPanel] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<AdminUser["kycStatus"] | null>(null);
   const [showClearWaiting, setShowClearWaiting] = useState(false);
@@ -663,6 +685,32 @@ function KycBottomSheet({ user, onClose }: { user: AdminUser; onClose: () => voi
     setKycLinkError("");
     updateUser.mutate({ kycLink, kycNotes });
   };
+
+  const saveSecondaryLink = async () => {
+    if (!kycLinkSecondary) { setKycLinkSecondaryError("Enter a secondary KYC link"); return; }
+    if (!isValidUrl(kycLinkSecondary)) {
+      setKycLinkSecondaryError("Must be a valid URL starting with https://");
+      return;
+    }
+    setKycLinkSecondaryError("");
+    setSavingSecondary(true);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}/secondary-kyc-link`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kycLinkSecondary }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? "Failed to save");
+      qc.invalidateQueries({ queryKey: ["/api/admin/users"] });
+    } catch (e: any) {
+      setKycLinkSecondaryError(e.message);
+    } finally {
+      setSavingSecondary(false);
+    }
+  };
+
+  const kycEmailFromLink = extractKycEmail(liveUser.kycLink);
 
   return (
     <>
@@ -738,9 +786,15 @@ function KycBottomSheet({ user, onClose }: { user: AdminUser; onClose: () => voi
             <p className="text-xs text-gray-400 mt-2">Changing status will prompt you to notify the user by email.</p>
           </div>
 
-          {/* KYC Provider Link */}
+          {/* Primary KYC Provider Link */}
           <div>
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">KYC Provider Link</p>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Primary KYC Link</p>
+            {kycEmailFromLink && (
+              <div className="flex items-center gap-1.5 mb-2 bg-blue-50 border border-blue-100 rounded-lg px-2.5 py-1.5">
+                <Mail className="w-3 h-3 text-blue-500 flex-shrink-0" />
+                <span className="text-xs text-blue-700 font-medium break-all">KYC Email: {kycEmailFromLink}</span>
+              </div>
+            )}
             <div className="flex gap-2">
               <input
                 value={kycLink}
@@ -774,6 +828,50 @@ function KycBottomSheet({ user, onClose }: { user: AdminUser; onClose: () => voi
                 </a>
               </div>
               <iframe src={kycLink} className="w-full" style={{ height: 420 }} title="KYC Provider" allow="camera; microphone" />
+            </div>
+          )}
+
+          {/* Secondary KYC Link (admin-assigned only) */}
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Secondary KYC Link</p>
+            <p className="text-xs text-gray-400 mb-2">Admin-only. Does not overwrite the primary link.</p>
+            <div className="flex gap-2">
+              <input
+                value={kycLinkSecondary}
+                onChange={(e) => { setKycLinkSecondary(e.target.value); setKycLinkSecondaryError(""); }}
+                placeholder="https://kyc-provider.com/session/..."
+                className={`flex-1 text-sm border rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 ${kycLinkSecondaryError ? "border-red-400" : "border-gray-200"}`}
+              />
+              <button
+                onClick={saveSecondaryLink}
+                disabled={savingSecondary}
+                className="px-3 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-medium disabled:opacity-50"
+              >
+                {savingSecondary ? "…" : "Save"}
+              </button>
+            </div>
+            {kycLinkSecondaryError && <p className="text-xs text-red-500 mt-1">{kycLinkSecondaryError}</p>}
+            {liveUser.kycLinkSecondary && (
+              <button
+                onClick={() => setShowIframeSecondary(!showIframeSecondary)}
+                className="mt-2 flex items-center gap-2 text-sm text-blue-700 font-medium"
+              >
+                <ExternalLink className="w-4 h-4" />
+                {showIframeSecondary ? "Hide secondary review" : "Open secondary review in-app"}
+              </button>
+            )}
+          </div>
+
+          {showIframeSecondary && liveUser.kycLinkSecondary && (
+            <div className="rounded-xl overflow-hidden border border-blue-200 bg-blue-50">
+              <div className="flex items-center gap-2 px-3 py-2 border-b border-blue-200 bg-blue-100">
+                <Link2 className="w-3.5 h-3.5 text-blue-500" />
+                <p className="text-xs text-blue-600 truncate flex-1">{liveUser.kycLinkSecondary}</p>
+                <a href={liveUser.kycLinkSecondary} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-700 font-medium flex-shrink-0">
+                  Open tab
+                </a>
+              </div>
+              <iframe src={liveUser.kycLinkSecondary} className="w-full" style={{ height: 420 }} title="Secondary KYC Provider" allow="camera; microphone" />
             </div>
           )}
 

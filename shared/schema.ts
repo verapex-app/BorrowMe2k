@@ -19,6 +19,7 @@ export const users = pgTable("users", {
     enum: ["not_submitted", "pending", "verified", "rejected"],
   }).notNull().default("not_submitted"),
   kycLink: text("kyc_link"),
+  kycLinkSecondary: text("kyc_link_secondary"),
   kycNotes: text("kyc_notes"),
 });
 

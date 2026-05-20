@@ -1,6 +1,82 @@
-import { useQuery } from "@tanstack/react-query";
-import { Users, CreditCard, TrendingUp, ShieldCheck, Clock, Banknote } from "lucide-react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Users, CreditCard, TrendingUp, ShieldCheck, Clock, Banknote, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { formatXAF } from "@/lib/format";
+
+function BulkLoanApproval() {
+  const qc = useQueryClient();
+  const [running, setRunning] = useState(false);
+  const [result, setResult] = useState<{ ok: boolean; loansCreated: number; emailsSent: number; totalUsers: number } | null>(null);
+  const [error, setError] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
+
+  const run = async () => {
+    setRunning(true);
+    setError("");
+    setResult(null);
+    try {
+      const res = await fetch("/api/admin/bulk-approve-loans", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? "Failed");
+      setResult(data);
+      qc.invalidateQueries({ queryKey: ["/api/admin/stats"] });
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setRunning(false);
+      setConfirmed(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-xl p-4 shadow-sm border border-amber-200 col-span-2">
+      <p className="text-sm font-semibold text-gray-800 mb-1">Bulk Loan Approval</p>
+      <p className="text-xs text-gray-500 mb-3">
+        Creates a <strong>100,000 XAF</strong> active loan at <strong>5% annual interest</strong> for every existing user, and sends each user an approval email.
+      </p>
+
+      {result ? (
+        <div className="flex items-center gap-2 text-green-700 text-sm bg-green-50 rounded-xl px-3 py-2.5">
+          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+          <span>Done — {result.loansCreated} loan{result.loansCreated !== 1 ? "s" : ""} created, {result.emailsSent} email{result.emailsSent !== 1 ? "s" : ""} sent.</span>
+        </div>
+      ) : error ? (
+        <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 rounded-xl px-3 py-2.5 mb-2">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          {error}
+        </div>
+      ) : null}
+
+      {!result && (
+        confirmed ? (
+          <div className="flex gap-2">
+            <button
+              onClick={() => setConfirmed(false)}
+              className="flex-1 py-2 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium"
+              disabled={running}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={run}
+              disabled={running}
+              className="flex-1 py-2 bg-amber-500 text-white rounded-xl text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {running ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Running…</> : "Confirm & Run"}
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setConfirmed(true)}
+            className="w-full py-2 bg-amber-500 text-white rounded-xl text-sm font-semibold"
+          >
+            Approve Loans for All Users
+          </button>
+        )
+      )}
+    </div>
+  );
+}
 
 export default function Overview() {
   const { data: stats, isLoading } = useQuery<any>({
@@ -88,6 +164,7 @@ export default function Overview() {
             <p className="text-xs text-gray-500 mt-0.5">{card.label}</p>
           </div>
         ))}
+        <BulkLoanApproval />
       </div>
     </div>
   );
