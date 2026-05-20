@@ -982,11 +982,13 @@ export default function UsersKyc() {
   const [selected, setSelected] = useState<AdminUser | null>(null);
   const [filter, setFilter] = useState<string>("all");
 
-  const { data: users = [], isLoading } = useQuery<AdminUser[]>({
+  const { data: usersRaw, isLoading } = useQuery<AdminUser[]>({
     queryKey: ["/api/admin/users"],
     queryFn: () => fetch("/api/admin/users").then((r) => r.json()),
     refetchInterval: 30_000,
   });
+
+  const users: AdminUser[] = Array.isArray(usersRaw) ? usersRaw : [];
 
   const filtered =
     filter === "all" ? users : filter === "waiting"
