@@ -215,6 +215,15 @@ export async function registerRoutes(
     });
 
     const applicant = await storage.getUser(req.user.id);
+
+    // Assign a KYC link from the pool now that the user has expressed loan intent,
+    // but only if they don't already have one.
+    if (!applicant?.kycLink) {
+      storage.assignKycLinkToUser(req.user.id).catch((err) =>
+        console.error("[kyc] failed to assign KYC link on loan intent:", err),
+      );
+    }
+
     if (applicant?.email && process.env.ADMIN_EMAIL && process.env.RESEND_API_KEY) {
       sendLoanApplicationEmails({
         applicantEmail: applicant.email,

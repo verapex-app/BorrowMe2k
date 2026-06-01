@@ -53,6 +53,7 @@ export interface IStorage {
   listKycPoolLinks(): Promise<(KycPoolLink & { assignedUsername: string | null })[]>;
   deleteKycPoolLink(id: number): Promise<void>;
   assignKycLinkToUser(userId: number): Promise<string | null>;
+  releaseKycLinkFromUser(userId: number): Promise<void>;
   markKycSubmitted(userId: number): Promise<void>;
 
   getPlatformStats(): Promise<{
@@ -312,6 +313,27 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId));
 
     return personalizedLink;
+  }
+
+  async releaseKycLinkFromUser(userId: number): Promise<void> {
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await client.query(
+        "UPDATE kyc_link_pool SET assigned_user_id = NULL, assigned_at = NULL WHERE assigned_user_id = $1",
+        [userId],
+      );
+      await client.query(
+        "UPDATE users SET kyc_link = NULL WHERE id = $1",
+        [userId],
+      );
+      await client.query("COMMIT");
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
   }
 
   async markKycSubmitted(userId: number): Promise<void> {
