@@ -278,7 +278,7 @@ function ClearWaitingDialog({
           <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
             <p className="text-xs font-semibold text-amber-800">What this does</p>
             <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
-              Ends the 30-minute waiting period for <strong>{user.fullName ?? user.username}</strong>.
+              Ends the 10-minute waiting period for <strong>{user.fullName ?? user.username}</strong>.
               The user will immediately be able to proceed to identity verification.
               {user.email && " An email will be sent to notify them."}
             </p>
@@ -749,7 +749,7 @@ function KycBottomSheet({ user, onClose }: { user: AdminUser; onClose: () => voi
                 <p className="text-sm font-semibold text-amber-800">User is in Waiting Period</p>
               </div>
               <p className="text-xs text-amber-700 leading-relaxed mb-3">
-                This user submitted their KYC details and is waiting for you to complete the account setup.
+                This user submitted their KYC details and is waiting for approval (10-minute window).
                 Approx. <strong>{waitingMinutes(liveUser)} minutes</strong> remaining on the countdown.
               </p>
               <button

@@ -55,6 +55,7 @@ export interface IStorage {
   assignKycLinkToUser(userId: number): Promise<string | null>;
   releaseKycLinkFromUser(userId: number): Promise<void>;
   markKycSubmitted(userId: number): Promise<void>;
+  autoApproveStalePendingLoans(): Promise<{ loanId: number; userId: number }[]>;
 
   getPlatformStats(): Promise<{
     totalUsers: number;
@@ -331,6 +332,22 @@ export class DatabaseStorage implements IStorage {
     } catch (err) {
       await client.query("ROLLBACK");
       throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  async autoApproveStalePendingLoans(): Promise<{ loanId: number; userId: number }[]> {
+    const client = await pool.connect();
+    try {
+      const cutoff = new Date(Date.now() - 10 * 60 * 1000);
+      const result = await client.query(
+        `UPDATE loans SET status = 'active', approved_at = NOW()
+         WHERE status = 'pending' AND applied_at <= $1
+         RETURNING id AS "loanId", user_id AS "userId"`,
+        [cutoff],
+      );
+      return result.rows as { loanId: number; userId: number }[];
     } finally {
       client.release();
     }

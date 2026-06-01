@@ -363,15 +363,31 @@ function WithdrawBlockedSheet({
   onClose: () => void;
   user: any;
 }) {
-  const kycLink = user?.kycLink as string | null | undefined;
   const kycStatus = user?.kycStatus as string | undefined;
+  const [assignedLink, setAssignedLink] = useState<string | null>(null);
+  const [assigning, setAssigning] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
 
-  const statusNote =
-    kycStatus === "pending"
-      ? "Your ID is under review. We'll notify you as soon as it's approved."
-      : kycStatus === "rejected"
-      ? "Your previous submission wasn't accepted. Please resubmit a clear, valid document."
-      : "Have one of the documents below ready — the process takes under 3 minutes.";
+  const existingLink = user?.kycLink as string | null | undefined;
+  const kycLink = assignedLink ?? existingLink;
+
+  useEffect(() => {
+    if (!open) return;
+    if (kycLink) return;
+    setAssigning(true);
+    setAssignError(null);
+    fetch("/api/kyc/assign-link", { method: "POST", credentials: "include" })
+      .then(async (res) => {
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.message ?? "Could not assign verification link");
+        }
+        return res.json();
+      })
+      .then((data) => setAssignedLink(data.kycLink))
+      .catch((err) => setAssignError(err.message))
+      .finally(() => setAssigning(false));
+  }, [open]);
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
@@ -388,9 +404,15 @@ function WithdrawBlockedSheet({
               kycLink={kycLink}
               kycStatus={kycStatus ?? "not_submitted"}
               onClose={onClose}
+              skipWaiting={true}
             />
           </div>
-        ) : (
+        ) : assigning ? (
+          <div className="overflow-y-auto flex-1 px-6 pb-10 pt-3 flex flex-col items-center justify-center gap-3">
+            <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+            <p className="text-sm text-muted-foreground">Preparing your verification…</p>
+          </div>
+        ) : assignError ? (
           <div className="overflow-y-auto flex-1 px-6 pb-10 pt-3">
             <div className="flex flex-col items-center text-center mb-5">
               <img
@@ -399,20 +421,17 @@ function WithdrawBlockedSheet({
                 className="w-40 h-40 object-contain"
               />
               <h2 className="text-xl font-bold text-foreground mt-1">
-                Identity Verification Required
+                Verification Unavailable
               </h2>
               <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed max-w-xs">
-                To protect all users, we require a valid Cameroonian government-issued document before withdrawals are enabled.
+                {assignError}
               </p>
             </div>
-            <p className="text-xs text-muted-foreground bg-muted rounded-xl px-4 py-3 leading-relaxed mb-5">
-              {statusNote}
-            </p>
             <Button className="w-full" onClick={onClose}>
               Got it
             </Button>
           </div>
-        )}
+        ) : null}
       </SheetContent>
     </Sheet>
   );

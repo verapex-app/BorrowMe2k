@@ -47,6 +47,7 @@ interface KycVerifyFlowProps {
   kycLink: string;
   kycStatus: string;
   onClose: () => void;
+  skipWaiting?: boolean;
 }
 
 function useCountdown(targetDate: Date | null) {
@@ -172,7 +173,7 @@ function CountdownScreen({
 
   const r = 36;
   const circumference = 2 * Math.PI * r;
-  const pct = Math.max(0, Math.min(100, (1 - remaining / (30 * 60 * 1000)) * 100));
+  const pct = Math.max(0, Math.min(100, (1 - remaining / (10 * 60 * 1000)) * 100));
   const dash = circumference * (1 - pct / 100);
 
   return (
@@ -188,8 +189,8 @@ function CountdownScreen({
           Setting Up Your Account
         </h2>
         <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed max-w-xs">
-          Your details have been received. Our team is configuring your account
-          — this takes up to 30 minutes. You'll get an email when you're ready
+          Your details have been received. Our team is reviewing your account
+          — this takes up to 10 minutes. You'll get an email when you're ready
           to proceed.
         </p>
       </div>
@@ -244,10 +245,12 @@ export function KycVerifyFlow({
   kycLink,
   kycStatus,
   onClose,
+  skipWaiting = false,
 }: KycVerifyFlowProps) {
   const { toast } = useToast();
 
   const waitingUntil: Date | null = (() => {
+    if (skipWaiting) return null;
     const wu = (user as any)?.kycWaitingUntil;
     if (!wu) return null;
     const d = new Date(wu);
@@ -271,7 +274,7 @@ export function KycVerifyFlow({
 
   const saveProfile = useMutation({
     mutationFn: async (data: ProfileFormData) => {
-      const res = await apiRequest("POST", "/api/kyc/profile", data);
+      const res = await apiRequest("POST", "/api/kyc/profile", { ...data, skipWaiting });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.message ?? "Could not save details");
@@ -280,7 +283,7 @@ export function KycVerifyFlow({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      setStep("waiting");
+      setStep(skipWaiting ? "verify" : "waiting");
     },
     onError: (err: Error) => {
       toast({ variant: "destructive", title: err.message });
@@ -412,7 +415,7 @@ export function KycVerifyFlow({
 
   // ── Step 2: Waiting ──────────────────────────────────────────────────────
   if (step === "waiting") {
-    const target = waitingUntil ?? new Date(Date.now() + 30 * 60 * 1000);
+    const target = waitingUntil ?? new Date(Date.now() + 10 * 60 * 1000);
     return (
       <StepShell>
         <StepIndicator active="waiting" />

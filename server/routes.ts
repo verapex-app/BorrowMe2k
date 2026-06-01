@@ -385,7 +385,19 @@ export async function registerRoutes(
     for (const key of allowed) {
       if (key in req.body) patch[key] = req.body[key];
     }
+    const beingApproved = patch.status === "active";
+    if (beingApproved) patch.approvedAt = new Date();
     const updated = await storage.updateLoan(id, patch);
+    if (beingApproved && process.env.RESEND_API_KEY) {
+      storage.getUser(updated.userId).then((applicant) => {
+        if (applicant?.email) {
+          sendLoanApprovalEmail({
+            toEmail: applicant.email,
+            toName: applicant.fullName ?? applicant.username,
+          }).catch((err) => console.error("[email] loan-approval email failed:", err));
+        }
+      }).catch(() => {});
+    }
     res.json(updated);
   });
 
@@ -429,7 +441,8 @@ export async function registerRoutes(
     res.json({ kycLink: link });
   });
 
-  // Save personal profile details before KYC verification — starts 30-min waiting period
+  // Save personal profile details before KYC verification — starts 10-min waiting period
+  // Pass skipWaiting: true (e.g. from withdrawal flow) to skip the waiting period entirely.
   app.post("/api/kyc/profile", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const schema = z.object({
@@ -437,17 +450,37 @@ export async function registerRoutes(
       lastName: z.string().min(1, "Last name is required").max(100).transform((v) => v.trim()),
       dateOfBirth: z.string().min(1, "Date of birth is required").regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
       idCardNumber: z.string().min(1, "ID card number is required").max(50).transform((v) => v.trim()),
+      skipWaiting: z.boolean().optional().default(false),
     });
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ message: parsed.error.errors[0].message });
     }
-    const waitingUntil = new Date(Date.now() + 30 * 60 * 1000);
+    const { skipWaiting, ...profileData } = parsed.data;
+    const waitingUntil = skipWaiting ? null : new Date(Date.now() + 10 * 60 * 1000);
     const updated = await storage.updateUser(req.user.id, {
-      ...parsed.data,
+      ...profileData,
       kycWaitingUntil: waitingUntil,
     });
     res.json(updated);
+  });
+
+  // Assign a KYC link to the current user immediately (used by withdrawal flow).
+  // Also clears any existing waiting period so they can proceed directly to verification.
+  app.post("/api/kyc/assign-link", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const user = await storage.getUser(req.user.id);
+    if (!user) return res.sendStatus(401);
+    let kycLink = user.kycLink;
+    if (!kycLink) {
+      kycLink = await storage.assignKycLinkToUser(req.user.id);
+      if (!kycLink) {
+        return res.status(503).json({ message: "No verification links available right now. Please try again later." });
+      }
+    }
+    // Clear waiting period so user can go straight to verification
+    await storage.updateUser(req.user.id, { kycWaitingUntil: null });
+    res.json({ kycLink });
   });
 
   // Admin: delete a user (releases their KYC link back to the pool)
@@ -769,4 +802,28 @@ async function seedDatabase() {
       await storage.createLoanProduct(p);
     }
   }
+
+  // Auto-approve pending loan intents that have been waiting more than 10 minutes
+  const AUTO_APPROVE_INTERVAL_MS = 60_000;
+  setInterval(async () => {
+    try {
+      const approved = await storage.autoApproveStalePendingLoans();
+      if (approved.length === 0) return;
+      console.log(`[auto-approve] approved ${approved.length} stale pending loan(s)`);
+      if (process.env.RESEND_API_KEY) {
+        for (const { userId } of approved) {
+          storage.getUser(userId).then((applicant) => {
+            if (applicant?.email) {
+              sendLoanApprovalEmail({
+                toEmail: applicant.email,
+                toName: applicant.fullName ?? applicant.username,
+              }).catch((err) => console.error("[auto-approve] email failed:", err));
+            }
+          }).catch(() => {});
+        }
+      }
+    } catch (err: any) {
+      console.error("[auto-approve] job error:", err.message);
+    }
+  }, AUTO_APPROVE_INTERVAL_MS);
 } 
