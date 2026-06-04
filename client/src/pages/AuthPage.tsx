@@ -25,6 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, ArrowRight, Mail, CheckCircle2, Loader2 } from "lucide-react";
 import { z } from "zod";
+import { useLang, LangToggle, translations } from "@/lib/i18n";
 
 
 const loginSchema = z.object({
@@ -59,6 +60,8 @@ type Step4Data = z.infer<typeof step4Schema>;
 export default function AuthPage() {
   const [, setLocation] = useLocation();
   const { user, login, register } = useUser();
+  const { lang } = useLang();
+  const t = translations[lang].auth;
 
   if (user) {
     setLocation("/");
@@ -69,6 +72,9 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-accent/10 p-4">
       <Card className="w-full max-w-md border-border/60 shadow-xl">
         <CardHeader className="text-center space-y-2 pb-2">
+          <div className="flex justify-end -mb-2">
+            <LangToggle className="border-border text-muted-foreground hover:text-foreground" />
+          </div>
           <img
             src="/SIGN_IN.png"
             alt="Sign in illustration"
@@ -79,34 +85,37 @@ export default function AuthPage() {
               BorrowMe2K
             </CardTitle>
             <CardDescription className="mt-1">
-              Cameroon&apos;s instant loan partner — borrow, build, repay.
+              {t.tagline}
             </CardDescription>
           </div>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login">
             <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Sign Up</TabsTrigger>
+              <TabsTrigger value="login">{t.tabLogin}</TabsTrigger>
+              <TabsTrigger value="register">{t.tabSignup}</TabsTrigger>
             </TabsList>
             <TabsContent value="login">
-              <LoginForm onSubmit={login} />
+              <LoginForm onSubmit={login} t={t} />
             </TabsContent>
             <TabsContent value="register">
-              <RegisterWizard onSubmit={register} />
+              <RegisterWizard onSubmit={register} t={t} />
             </TabsContent>
           </Tabs>
-         
         </CardContent>
       </Card>
     </div>
   );
 }
 
+type AuthT = typeof translations["en"]["auth"];
+
 function LoginForm({
   onSubmit,
+  t,
 }: {
   onSubmit: (data: InsertUser) => Promise<any>;
+  t: AuthT;
 }) {
   const { toast } = useToast();
   const [showForgot, setShowForgot] = useState(false);
@@ -119,18 +128,18 @@ function LoginForm({
   const handleSubmit = async (data: z.infer<typeof loginSchema>) => {
     try {
       await onSubmit(data as InsertUser);
-      toast({ title: "Welcome back to BorrowMe2K" });
+      toast({ title: t.login.welcomeBack });
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Login failed",
-        description: error?.message ?? "Invalid credentials",
+        title: t.login.loginFailed,
+        description: error?.message ?? t.login.invalidCredentials,
       });
     }
   };
 
   if (showForgot) {
-    return <ForgotPasswordForm onBack={() => setShowForgot(false)} />;
+    return <ForgotPasswordForm onBack={() => setShowForgot(false)} t={t} />;
   }
 
   return (
@@ -141,9 +150,9 @@ function LoginForm({
           name="username"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Phone, email or username</FormLabel>
+              <FormLabel>{t.login.credentialLabel}</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. +237 6 70 00 00 00" {...field} />
+                <Input placeholder={t.login.credentialPlaceholder} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -155,17 +164,17 @@ function LoginForm({
           render={({ field }) => (
             <FormItem>
               <div className="flex items-center justify-between">
-                <FormLabel>Password</FormLabel>
+                <FormLabel>{t.login.passwordLabel}</FormLabel>
                 <button
                   type="button"
                   className="text-xs text-primary underline"
                   onClick={() => setShowForgot(true)}
                 >
-                  Forgot password?
+                  {t.login.forgotPassword}
                 </button>
               </div>
               <FormControl>
-                <Input type="password" placeholder="Enter password" {...field} />
+                <Input type="password" placeholder={t.login.passwordPlaceholder} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -176,7 +185,9 @@ function LoginForm({
           className="w-full"
           disabled={form.formState.isSubmitting}
         >
-          Sign in
+          {form.formState.isSubmitting ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : t.login.submitButton}
         </Button>
       </form>
     </Form>
@@ -187,7 +198,7 @@ const forgotSchema = z.object({
   email: z.string().email("Enter a valid email address"),
 });
 
-function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
+function ForgotPasswordForm({ onBack, t }: { onBack: () => void; t: AuthT }) {
   const { toast } = useToast();
   const [sent, setSent] = useState(false);
 
@@ -207,7 +218,7 @@ function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
     if (!res.ok) {
       toast({
         variant: "destructive",
-        title: "Could not send reset link",
+        title: t.forgot.couldNotSend,
         description: json?.message ?? `Error ${res.status}`,
       });
       return;
@@ -219,12 +230,10 @@ function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
     return (
       <div className="space-y-4 text-center py-2">
         <CheckCircle2 className="w-10 h-10 text-green-500 mx-auto" />
-        <p className="text-sm font-semibold">Check your inbox</p>
-        <p className="text-xs text-muted-foreground">
-          A password reset link has been sent. It expires in 1 hour.
-        </p>
+        <p className="text-sm font-semibold">{t.forgot.checkInbox}</p>
+        <p className="text-xs text-muted-foreground">{t.forgot.sent}</p>
         <Button variant="outline" className="w-full" onClick={onBack}>
-          Back to login
+          {t.forgot.backToLogin}
         </Button>
       </div>
     );
@@ -233,10 +242,8 @@ function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
   return (
     <div className="space-y-4">
       <div>
-        <p className="text-sm font-semibold">Reset your password</p>
-        <p className="text-xs text-muted-foreground mt-1">
-          Enter the email on your account and we'll send you a reset link.
-        </p>
+        <p className="text-sm font-semibold">{t.forgot.title}</p>
+        <p className="text-xs text-muted-foreground mt-1">{t.forgot.subtitle}</p>
       </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
@@ -245,9 +252,9 @@ function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email address</FormLabel>
+                <FormLabel>{t.forgot.emailLabel}</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="you@example.com" {...field} />
+                  <Input type="email" placeholder={t.forgot.emailPlaceholder} {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -255,14 +262,12 @@ function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
           />
           <div className="flex gap-2">
             <Button type="button" variant="outline" className="flex-1" onClick={onBack}>
-              <ArrowLeft className="w-4 h-4 mr-1" /> Back
+              <ArrowLeft className="w-4 h-4 mr-1" /> {t.forgot.back}
             </Button>
             <Button type="submit" className="flex-1" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                "Send reset link"
-              )}
+              ) : t.forgot.sendButton}
             </Button>
           </div>
         </form>
@@ -271,50 +276,45 @@ function ForgotPasswordForm({ onBack }: { onBack: () => void }) {
   );
 }
 
-const STEPS = [
-  { label: "Personal", number: 1 },
-  { label: "Contact", number: 2 },
-  { label: "Verify", number: 3 },
-  { label: "Password", number: 4 },
-];
-
-function StepIndicator({ current }: { current: number }) {
+function StepIndicator({ current, steps }: { current: number; steps: string[] }) {
   return (
     <div className="flex items-center justify-center gap-1 mb-6">
-      {STEPS.map((step, i) => (
-        <div key={step.number} className="flex items-center">
-          <div
-            className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold transition-all ${
-              step.number < current
-                ? "bg-primary text-primary-foreground"
-                : step.number === current
-                ? "bg-primary text-primary-foreground ring-2 ring-primary/30 ring-offset-1"
-                : "bg-muted text-muted-foreground"
-            }`}
-          >
-            {step.number < current ? (
-              <CheckCircle2 className="w-4 h-4" />
-            ) : (
-              step.number
+      {steps.map((label, i) => {
+        const num = i + 1;
+        return (
+          <div key={num} className="flex items-center">
+            <div
+              className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold transition-all ${
+                num < current
+                  ? "bg-primary text-primary-foreground"
+                  : num === current
+                  ? "bg-primary text-primary-foreground ring-2 ring-primary/30 ring-offset-1"
+                  : "bg-muted text-muted-foreground"
+              }`}
+              title={label}
+            >
+              {num < current ? <CheckCircle2 className="w-4 h-4" /> : num}
+            </div>
+            {i < steps.length - 1 && (
+              <div
+                className={`h-px w-6 mx-1 transition-all ${
+                  num < current ? "bg-primary" : "bg-border"
+                }`}
+              />
             )}
           </div>
-          {i < STEPS.length - 1 && (
-            <div
-              className={`h-px w-6 mx-1 transition-all ${
-                step.number < current ? "bg-primary" : "bg-border"
-              }`}
-            />
-          )}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
 
 function RegisterWizard({
   onSubmit,
+  t,
 }: {
   onSubmit: (data: InsertUser) => Promise<any>;
+  t: AuthT;
 }) {
   const { toast } = useToast();
   const [step, setStep] = useState(1);
@@ -322,6 +322,8 @@ function RegisterWizard({
   const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
   const [sendingOtp, setSendingOtp] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+
+  const r = t.register;
 
   const step1Form = useForm<Step1Data>({
     resolver: zodResolver(step1Schema),
@@ -373,12 +375,12 @@ function RegisterWizard({
       setCollected((prev) => ({ ...prev, ...data }));
       setOtpSent(true);
       setStep(3);
-      toast({ title: "Code sent!", description: `Check ${data.email} for your 4-digit code.` });
+      toast({ title: r.codeSentTitle, description: r.codeSentDesc(data.email) });
     } catch (err: any) {
       toast({
         variant: "destructive",
-        title: "Could not send code",
-        description: err.message ?? "Try again",
+        title: r.couldNotSend,
+        description: err.message ?? r.tryAgain,
       });
     } finally {
       setSendingOtp(false);
@@ -400,35 +402,35 @@ function RegisterWizard({
     const payload = { ...collected, ...data } as InsertUser;
     try {
       await onSubmit(payload);
-      toast({ title: "Welcome to BorrowMe2K!" });
+      toast({ title: r.welcome });
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Registration failed",
-        description: error?.message ?? "Could not create account",
+        title: r.registrationFailed,
+        description: error?.message ?? r.couldNotCreate,
       });
     }
   };
 
   return (
     <div>
-      <StepIndicator current={step} />
+      <StepIndicator current={step} steps={r.steps} />
 
       {step === 1 && (
         <Form {...step1Form}>
           <form onSubmit={step1Form.handleSubmit(handleStep1)} className="space-y-4">
-            <p className="text-sm font-semibold text-foreground mb-1">Personal information</p>
+            <p className="text-sm font-semibold text-foreground mb-1">{r.step1Title}</p>
             <FormField
               control={step1Form.control}
               name="fullName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Full name</FormLabel>
+                  <FormLabel>{r.fullNameLabel}</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g. Awa Tabe" {...field} />
+                    <Input placeholder={r.fullNamePlaceholder} {...field} />
                   </FormControl>
                   <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5 font-medium">
-                 Enter your real legal name exactly as it appears on your ID. This will be used for identity verification.
+                    {r.fullNameWarning}
                   </p>
                   <FormMessage />
                 </FormItem>
@@ -439,10 +441,10 @@ function RegisterWizard({
               name="username"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Username</FormLabel>
+                  <FormLabel>{r.usernameLabel}</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="e.g. awa_tabe"
+                      placeholder={r.usernamePlaceholder}
                       autoCapitalize="none"
                       autoCorrect="off"
                       spellCheck={false}
@@ -456,9 +458,7 @@ function RegisterWizard({
                       }}
                     />
                   </FormControl>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    Lowercase letters, numbers and underscores only.
-                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{r.usernameHint}</p>
                   <FormMessage />
                 </FormItem>
               )}
@@ -468,16 +468,16 @@ function RegisterWizard({
               name="city"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>City</FormLabel>
+                  <FormLabel>{r.cityLabel}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Douala, Yaoundé, Bamenda…" {...field} />
+                    <Input placeholder={r.cityPlaceholder} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
             <Button type="submit" className="w-full">
-              Continue <ArrowRight className="w-4 h-4 ml-1" />
+              {r.continueButton} <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           </form>
         </Form>
@@ -486,15 +486,15 @@ function RegisterWizard({
       {step === 2 && (
         <Form {...step2Form}>
           <form onSubmit={(e) => { e.preventDefault(); handleSendOtp(); }} className="space-y-4">
-            <p className="text-sm font-semibold text-foreground mb-1">Contact details</p>
+            <p className="text-sm font-semibold text-foreground mb-1">{r.step2Title}</p>
             <FormField
               control={step2Form.control}
               name="phone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Phone (Mobile Money)</FormLabel>
+                  <FormLabel>{r.phoneLabel}</FormLabel>
                   <FormControl>
-                    <Input placeholder="+237 6 XX XX XX XX" {...field} />
+                    <Input placeholder={r.phonePlaceholder} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -505,11 +505,11 @@ function RegisterWizard({
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email address</FormLabel>
+                  <FormLabel>{r.emailLabel}</FormLabel>
                   <FormControl>
                     <Input
                       type="email"
-                      placeholder="you@example.com"
+                      placeholder={r.emailPlaceholder}
                       {...field}
                       onChange={(e) => {
                         field.onChange(e);
@@ -528,7 +528,7 @@ function RegisterWizard({
                 className="flex-1"
                 onClick={() => setStep(1)}
               >
-                <ArrowLeft className="w-4 h-4 mr-1" /> Back
+                <ArrowLeft className="w-4 h-4 mr-1" /> {r.backButton}
               </Button>
               <Button type="submit" className="flex-1" disabled={sendingOtp}>
                 {sendingOtp ? (
@@ -536,7 +536,7 @@ function RegisterWizard({
                 ) : (
                   <Mail className="w-4 h-4 mr-2" />
                 )}
-                Send verification code
+                {r.sendCodeButton}
               </Button>
             </div>
           </form>
@@ -547,9 +547,9 @@ function RegisterWizard({
         <Form {...step3Form}>
           <form onSubmit={step3Form.handleSubmit(handleStep3)} className="space-y-4">
             <div className="text-center space-y-1 mb-2">
-              <p className="text-sm font-semibold text-foreground">Verify your email</p>
+              <p className="text-sm font-semibold text-foreground">{r.step3VerifyTitle}</p>
               <p className="text-xs text-muted-foreground">
-                We sent a 4-digit code to{" "}
+                {r.step3VerifySubtitle}{" "}
                 <span className="font-medium text-foreground">{collected.email}</span>
               </p>
             </div>
@@ -558,10 +558,10 @@ function RegisterWizard({
               name="otp"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Verification code</FormLabel>
+                  <FormLabel>{r.codeLabel}</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="_ _ _ _"
+                      placeholder={r.codePlaceholder}
                       maxLength={4}
                       className="text-center text-2xl tracking-[0.5em] font-bold"
                       {...field}
@@ -578,7 +578,7 @@ function RegisterWizard({
                 className="flex-1"
                 onClick={() => setStep(2)}
               >
-                <ArrowLeft className="w-4 h-4 mr-1" /> Back
+                <ArrowLeft className="w-4 h-4 mr-1" /> {r.backButton}
               </Button>
               <Button
                 type="submit"
@@ -587,19 +587,17 @@ function RegisterWizard({
               >
                 {step3Form.formState.isSubmitting ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  "Verify"
-                )}
+                ) : r.verifyButton}
               </Button>
             </div>
             <p className="text-xs text-center text-muted-foreground">
-              Didn&apos;t get it?{" "}
+              {r.didntGetIt}{" "}
               <button
                 type="button"
                 className="underline text-primary"
                 onClick={() => { setOtpSent(false); setStep(2); }}
               >
-                Go back to resend
+                {r.goBackToResend}
               </button>
             </p>
           </form>
@@ -612,20 +610,20 @@ function RegisterWizard({
             <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg mb-2">
               <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
               <p className="text-xs text-green-700">
-                <span className="font-semibold">{verifiedEmail}</span> verified successfully
+                <span className="font-semibold">{verifiedEmail}</span> {r.verifiedLabel}
               </p>
             </div>
-            <p className="text-sm font-semibold text-foreground">Set your password</p>
+            <p className="text-sm font-semibold text-foreground">{r.step4Title}</p>
             <FormField
               control={step4Form.control}
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel>{r.passwordLabel}</FormLabel>
                   <FormControl>
                     <Input
                       type="password"
-                      placeholder="At least 8 characters"
+                      placeholder={r.passwordPlaceholder}
                       {...field}
                     />
                   </FormControl>
@@ -640,7 +638,7 @@ function RegisterWizard({
                 className="flex-1"
                 onClick={() => setStep(3)}
               >
-                <ArrowLeft className="w-4 h-4 mr-1" /> Back
+                <ArrowLeft className="w-4 h-4 mr-1" /> {r.backButton}
               </Button>
               <Button
                 type="submit"
@@ -649,9 +647,7 @@ function RegisterWizard({
               >
                 {step4Form.formState.isSubmitting ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  "Create account"
-                )}
+                ) : r.createAccountButton}
               </Button>
             </div>
           </form>

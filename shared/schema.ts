@@ -62,6 +62,7 @@ export const kycLinkPool = pgTable("kyc_link_pool", {
   rawLink: text("raw_link").notNull(),
   assignedUserId: integer("assigned_user_id").references(() => users.id),
   assignedAt: timestamp("assigned_at"),
+  lockedAt: timestamp("locked_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

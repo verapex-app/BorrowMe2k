@@ -483,6 +483,13 @@ export async function registerRoutes(
     res.json({ kycLink });
   });
 
+  // Lock the assigned KYC link so it won't be recycled (user has opened it)
+  app.post("/api/kyc/start", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    await storage.lockKycLink(req.user.id);
+    res.json({ ok: true });
+  });
+
   // Admin: delete a user (releases their KYC link back to the pool)
   app.delete("/api/admin/users/:id", requireAdmin, async (req, res) => {
     const id = Number(req.params.id);

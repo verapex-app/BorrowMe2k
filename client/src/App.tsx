@@ -15,7 +15,9 @@ import LandingPage from "@/pages/LandingPage";
 import ResetPasswordPage from "@/pages/ResetPasswordPage";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import SubmissionPage from "@/pages/Submission";
+import KycPage from "@/pages/KycPage";
 import { useUser } from "@/hooks/use-user";
+import { LangProvider } from "@/lib/i18n";
 import { Loader2 } from "lucide-react";
 
 function Router() {
@@ -64,6 +66,11 @@ function Router() {
     return <LandingPage />;
   }
 
+  // Logged in but KYC not yet verified — block access to main app
+  if (user.kycStatus !== "verified") {
+    return <KycPage />;
+  }
+
   return (
     <div className="min-h-screen bg-muted/30 dark:bg-background flex justify-center">
       <div className="w-full max-w-md bg-background min-h-screen relative shadow-2xl flex flex-col">
@@ -86,10 +93,12 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Router />
-        <Toaster />
-      </TooltipProvider>
+      <LangProvider>
+        <TooltipProvider>
+          <Router />
+          <Toaster />
+        </TooltipProvider>
+      </LangProvider>
     </QueryClientProvider>
   );
 }

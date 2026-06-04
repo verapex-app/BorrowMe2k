@@ -1,0 +1,2 @@
+- [i18n architecture](i18n-arch.md) — EN/FR applied only to Landing/Auth/KYC pages; inner app stays English; translations live in a single i18n.tsx file.
+- [KYC gate pattern](kyc-gate.md) — App.tsx renders KycPage instead of Router children when user.kycStatus !== "verified"; lockedAt column prevents link sharing.

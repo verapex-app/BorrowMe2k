@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
+import { useLang, LangToggle, translations } from "@/lib/i18n";
 
 const LOAN_PRODUCTS = [
   {
@@ -139,32 +140,6 @@ const LOAN_PRODUCTS = [
   },
 ];
 
-const FAQ = [
-  {
-    q: "How quickly can I receive a loan in Cameroon?",
-    a: "Once your ID is verified and your application is approved, disbursement to your Mobile Money wallet (MTN MoMo or Orange Money) or bank account typically happens within the same business day.",
-  },
-  {
-    q: "Do I need collateral to borrow on BorrowMe2K?",
-    a: "No. BorrowMe2K is a collateral-free micro-lending platform. We rely on identity verification and your repayment history instead of physical assets.",
-  },
-  {
-    q: "What interest rate does BorrowMe2K charge?",
-    a: "Interest rates depend on the loan product: from 2.5% per month for School Fees loans up to 5% per month for Quick Cash. Your exact rate and monthly repayment are shown before you confirm any application.",
-  },
-  {
-    q: "How do I repay my loan?",
-    a: "You can repay through MTN Mobile Money, Orange Money, direct bank transfer, or cash at our offices. All payments are logged instantly in the app so you can track your balance in real time.",
-  },
-  {
-    q: "Can I apply for multiple loans at the same time?",
-    a: "Yes — provided your outstanding balance and repayment track record support additional credit. Each application is reviewed individually.",
-  },
-  {
-    q: "What is ID verification and why is it required?",
-    a: "ID verification is a one-time identity check required by Cameroonian financial regulations. You submit your national ID or passport once; after approval you can apply for any loan product.",
-  },
-];
 
 function formatFCFA(n: number) {
   return n.toLocaleString("fr-CM") + " FCFA";
@@ -197,6 +172,8 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 
 export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
+  const { lang } = useLang();
+  const t = translations[lang].landing;
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 20);
@@ -207,7 +184,7 @@ export default function LandingPage() {
   const faqJsonLd = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
-    mainEntity: FAQ.map(({ q, a }) => ({
+    mainEntity: t.faq.items.map(({ q, a }) => ({
       "@type": "Question",
       name: q,
       acceptedAnswer: { "@type": "Answer", text: a },
@@ -254,19 +231,20 @@ export default function LandingPage() {
               <img src="/logo.png" alt="BorrowMe2K logo" className="h-9 w-auto" />
             </a>
             <div className="flex items-center gap-3">
+              <LangToggle className="border-[#2d6a4f]/30 text-[#2d6a4f] hover:border-[#2d6a4f]" />
               <Link
                 href="/auth"
                 className="hidden sm:inline-flex text-sm font-medium text-[#2d6a4f] hover:text-[#1b4332] transition-colors px-3 py-2"
                 data-testid="link-nav-signin"
               >
-                Sign in
+                {t.nav.signin}
               </Link>
               <Link
                 href="/auth?tab=signup"
                 className="inline-flex items-center gap-1.5 text-sm font-semibold bg-[#2d6a4f] text-white px-4 py-2 rounded-lg hover:bg-[#1b4332] transition-colors"
                 data-testid="link-nav-get-started"
               >
-                Get started
+                {t.nav.getStarted}
                 <svg viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5" aria-hidden="true">
                   <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
                 </svg>
@@ -293,7 +271,7 @@ export default function LandingPage() {
                 <div className="inline-flex items-center gap-2 bg-[#2d6a4f]/10 border border-[#2d6a4f]/20 rounded-full px-4 py-1.5 mb-6">
                   <span className="w-2 h-2 rounded-full bg-[#2d6a4f] animate-pulse shrink-0" aria-hidden="true"/>
                   <span className="text-[#2d6a4f] text-xs font-semibold tracking-wide uppercase">
-                    Online loans for Cameroonians
+                    {t.hero.badge}
                   </span>
                 </div>
 
@@ -301,15 +279,13 @@ export default function LandingPage() {
                   id="hero-heading"
                   className="font-display text-4xl sm:text-5xl font-bold text-[#1b4332] leading-[1.1] tracking-tight mb-5"
                 >
-                  Fast loans for every
+                  {t.hero.titleLine1}
                   <br />
-                  <span className="text-[#2d6a4f]">Cameroonian need</span>
+                  <span className="text-[#2d6a4f]">{t.hero.titleLine2}</span>
                 </h1>
 
                 <p className="text-[#3a5a47] text-lg leading-relaxed mb-8 max-w-xl">
-                  Apply online in minutes. Funds arrive on your{" "}
-                  <strong className="font-semibold text-[#1b4332]">MTN MoMo or Orange Money</strong>{" "}
-                  wallet — no collateral, no branch visit, six loan products for life's real demands.
+                  {t.hero.subtitle}
                 </p>
 
                 <div className="flex flex-wrap gap-3 mb-12">
@@ -318,7 +294,7 @@ export default function LandingPage() {
                     className="inline-flex items-center gap-2 bg-[#2d6a4f] text-white font-semibold px-6 py-3 rounded-xl hover:bg-[#1b4332] transition-colors text-sm shadow-md shadow-[#2d6a4f]/25"
                     data-testid="link-hero-apply"
                   >
-                    Apply for a loan
+                    {t.hero.cta1}
                     <svg viewBox="0 0 16 16" fill="none" className="w-4 h-4" aria-hidden="true">
                       <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
@@ -328,17 +304,13 @@ export default function LandingPage() {
                     className="inline-flex items-center gap-2 bg-white border border-[#c8e0d4] text-[#2d6a4f] font-semibold px-6 py-3 rounded-xl hover:border-[#2d6a4f] transition-colors text-sm"
                     data-testid="link-hero-view-products"
                   >
-                    See loan products
+                    {t.hero.cta2}
                   </a>
                 </div>
 
                 {/* Key stats */}
                 <dl className="flex flex-wrap gap-8">
-                  {[
-                    { value: "6", label: "Loan products", desc: "tailored to Cameroonian life" },
-                    { value: "0", label: "Collateral required", desc: "identity verification only" },
-                    { value: "2.5%", label: "From per month", desc: "starting interest rate" },
-                  ].map(({ value, label, desc }) => (
+                  {t.hero.stats.map(({ value, label, desc }) => (
                     <div key={label}>
                       <dt className="sr-only">{desc}</dt>
                       <dd>
@@ -406,12 +378,7 @@ export default function LandingPage() {
           <section aria-label="Platform highlights" className="bg-[#1b4332] py-10 px-5">
             <div className="max-w-6xl mx-auto">
               <dl className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
-                {[
-                  { value: "10 min", label: "Average approval time" },
-                  { value: "0 FCFA", label: "Application fee" },
-                  { value: "6", label: "Loan products available" },
-                  { value: "3", label: "Repayment channels" },
-                ].map(({ value, label }) => (
+                {t.trust.map(({ value, label }) => (
                   <div key={label} className="border-r border-white/10 last:border-0 pr-4 last:pr-0">
                     <dd className="font-display text-2xl font-bold text-[#95d5b2] mb-1">{value}</dd>
                     <dt className="text-xs text-white/60 leading-snug">{label}</dt>
@@ -430,10 +397,10 @@ export default function LandingPage() {
             <div className="max-w-6xl mx-auto">
               <header className="text-center mb-14">
                 <h2 id="how-heading" className="font-display text-3xl font-bold text-[#1b4332] mb-3">
-                  From application to wallet in three steps
+                  {t.how.title}
                 </h2>
                 <p className="text-[#52b788] text-base max-w-lg mx-auto">
-                  No branch visit, no long forms, no hidden steps.
+                  {t.how.subtitle}
                 </p>
               </header>
 
@@ -448,10 +415,8 @@ export default function LandingPage() {
                     </svg>
                     <span className="absolute -top-3 -right-3 w-7 h-7 rounded-full bg-[#2d6a4f] text-white text-xs font-bold flex items-center justify-center font-display">1</span>
                   </div>
-                  <h3 className="font-display font-bold text-[#1b4332] text-lg mb-2">Create account &amp; verify identity</h3>
-                  <p className="text-[#3a5a47] text-sm leading-relaxed">
-                    Register with your name, phone, and email. Submit your national ID for a one-time identity check — done in under five minutes.
-                  </p>
+                  <h3 className="font-display font-bold text-[#1b4332] text-lg mb-2">{t.how.steps[0].title}</h3>
+                  <p className="text-[#3a5a47] text-sm leading-relaxed">{t.how.steps[0].body}</p>
                 </li>
 
                 <li aria-label="Step 2: Choose a loan product and set your amount" className="flex flex-col items-center text-center relative">
@@ -463,10 +428,8 @@ export default function LandingPage() {
                     </svg>
                     <span className="absolute -top-3 -right-3 w-7 h-7 rounded-full bg-[#2d6a4f] text-white text-xs font-bold flex items-center justify-center font-display">2</span>
                   </div>
-                  <h3 className="font-display font-bold text-[#1b4332] text-lg mb-2">Pick a product and set your amount</h3>
-                  <p className="text-[#3a5a47] text-sm leading-relaxed">
-                    Browse six loan products. Slide to your desired amount and term — your monthly repayment and total cost update instantly before you apply.
-                  </p>
+                  <h3 className="font-display font-bold text-[#1b4332] text-lg mb-2">{t.how.steps[1].title}</h3>
+                  <p className="text-[#3a5a47] text-sm leading-relaxed">{t.how.steps[1].body}</p>
                 </li>
 
                 <li aria-label="Step 3: Receive funds on Mobile Money" className="flex flex-col items-center text-center relative">
@@ -479,10 +442,8 @@ export default function LandingPage() {
                     </svg>
                     <span className="absolute -top-3 -right-3 w-7 h-7 rounded-full bg-[#2d6a4f] text-white text-xs font-bold flex items-center justify-center font-display">3</span>
                   </div>
-                  <h3 className="font-display font-bold text-[#1b4332] text-lg mb-2">Receive funds on Mobile Money</h3>
-                  <p className="text-[#3a5a47] text-sm leading-relaxed">
-                    Once approved, funds are sent directly to your MTN MoMo or Orange Money wallet. Repay monthly via mobile money, bank transfer, or cash.
-                  </p>
+                  <h3 className="font-display font-bold text-[#1b4332] text-lg mb-2">{t.how.steps[2].title}</h3>
+                  <p className="text-[#3a5a47] text-sm leading-relaxed">{t.how.steps[2].body}</p>
                 </li>
               </ol>
             </div>
@@ -498,15 +459,15 @@ export default function LandingPage() {
             <div className="max-w-6xl mx-auto">
               <header className="text-center mb-14">
                 <h2 id="products-heading" className="font-display text-3xl font-bold text-[#1b4332] mb-3">
-                  Six loan products for real Cameroonian needs
+                  {t.products.title}
                 </h2>
                 <p className="text-[#52b788] text-base max-w-lg mx-auto">
-                  Each product is purpose-built, with amounts, rates, and terms designed around how Cameroonians actually live and work.
+                  {t.products.subtitle}
                 </p>
               </header>
 
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {LOAN_PRODUCTS.map((p) => (
+                {LOAN_PRODUCTS.map((p, i) => (
                   <article
                     key={p.slug}
                     aria-label={`${p.name} loan product`}
@@ -519,28 +480,28 @@ export default function LandingPage() {
                       </div>
                       <div>
                         <h3 className="font-display font-bold text-[#1b4332] text-base leading-tight">{p.name}</h3>
-                        <p className="text-[#52b788] text-xs font-medium mt-0.5">{p.tagline}</p>
+                        <p className="text-[#52b788] text-xs font-medium mt-0.5">{t.products.items[i].tagline}</p>
                       </div>
                     </div>
-                    <p className="text-[#3a5a47] text-sm leading-relaxed">{p.description}</p>
+                    <p className="text-[#3a5a47] text-sm leading-relaxed">{t.products.items[i].description}</p>
                     <dl className="grid grid-cols-2 gap-3 mt-auto pt-4 border-t border-[#eaf3ed]">
                       <div>
-                        <dt className="text-[10px] text-[#74c69d] font-semibold uppercase tracking-wide">Amount range</dt>
+                        <dt className="text-[10px] text-[#74c69d] font-semibold uppercase tracking-wide">{t.products.amountRange}</dt>
                         <dd className="text-xs font-semibold text-[#1b4332] mt-0.5">
                           {formatFCFA(p.minAmount)} – {formatFCFA(p.maxAmount)}
                         </dd>
                       </div>
                       <div>
-                        <dt className="text-[10px] text-[#74c69d] font-semibold uppercase tracking-wide">Interest rate</dt>
-                        <dd className="text-xs font-semibold text-[#1b4332] mt-0.5">{p.rate}% / month</dd>
+                        <dt className="text-[10px] text-[#74c69d] font-semibold uppercase tracking-wide">{t.products.interestRate}</dt>
+                        <dd className="text-xs font-semibold text-[#1b4332] mt-0.5">{p.rate}% {t.products.perMonth}</dd>
                       </div>
                       <div>
-                        <dt className="text-[10px] text-[#74c69d] font-semibold uppercase tracking-wide">Term</dt>
-                        <dd className="text-xs font-semibold text-[#1b4332] mt-0.5">{p.minTerm}–{p.maxTerm} months</dd>
+                        <dt className="text-[10px] text-[#74c69d] font-semibold uppercase tracking-wide">{t.products.term}</dt>
+                        <dd className="text-xs font-semibold text-[#1b4332] mt-0.5">{p.minTerm}–{p.maxTerm} {t.products.months}</dd>
                       </div>
                       <div>
-                        <dt className="text-[10px] text-[#74c69d] font-semibold uppercase tracking-wide">Common use</dt>
-                        <dd className="text-[10px] text-[#3a5a47] mt-0.5 leading-tight">{p.use}</dd>
+                        <dt className="text-[10px] text-[#74c69d] font-semibold uppercase tracking-wide">{t.products.commonUse}</dt>
+                        <dd className="text-[10px] text-[#3a5a47] mt-0.5 leading-tight">{t.products.items[i].use}</dd>
                       </div>
                     </dl>
                   </article>
@@ -553,7 +514,7 @@ export default function LandingPage() {
                   className="inline-flex items-center gap-2 bg-[#2d6a4f] text-white font-semibold px-7 py-3.5 rounded-xl hover:bg-[#1b4332] transition-colors shadow-md shadow-[#2d6a4f]/25"
                   data-testid="link-products-apply"
                 >
-                  Apply for a loan today
+                  {t.products.cta}
                 </Link>
               </div>
             </div>
@@ -567,10 +528,10 @@ export default function LandingPage() {
             <div className="max-w-6xl mx-auto">
               <header className="text-center mb-14">
                 <h2 id="repayment-heading" className="font-display text-3xl font-bold text-white mb-3">
-                  Repay the way that works for you
+                  {t.repayment.title}
                 </h2>
                 <p className="text-[#74c69d] text-base max-w-lg mx-auto">
-                  Three channels, all tracked automatically in your BorrowMe2K account.
+                  {t.repayment.subtitle}
                 </p>
               </header>
 
@@ -580,10 +541,8 @@ export default function LandingPage() {
                   <div className="w-20 h-14 mx-auto mb-4 rounded-2xl bg-white flex items-center justify-center overflow-hidden">
                     <img src="/mtn_momo.webp" alt="MTN Mobile Money" className="h-12 w-auto object-contain" />
                   </div>
-                  <h3 className="font-display font-bold text-white text-base mb-2">MTN Mobile Money</h3>
-                  <p className="text-[#95d5b2] text-sm leading-relaxed">
-                    Send your monthly payment directly from your MTN MoMo wallet — available anywhere in Cameroon, 24/7.
-                  </p>
+                  <h3 className="font-display font-bold text-white text-base mb-2">{t.repayment.methods[0].title}</h3>
+                  <p className="text-[#95d5b2] text-sm leading-relaxed">{t.repayment.methods[0].body}</p>
                 </div>
 
                 {/* Orange Money */}
@@ -591,10 +550,8 @@ export default function LandingPage() {
                   <div className="w-20 h-14 mx-auto mb-4 rounded-2xl bg-white flex items-center justify-center overflow-hidden">
                     <img src="/orange_money.png" alt="Orange Money" className="h-12 w-auto object-contain" />
                   </div>
-                  <h3 className="font-display font-bold text-white text-base mb-2">Orange Money</h3>
-                  <p className="text-[#95d5b2] text-sm leading-relaxed">
-                    Orange Money subscribers can repay without cash or branches — just your phone. Every payment is logged instantly.
-                  </p>
+                  <h3 className="font-display font-bold text-white text-base mb-2">{t.repayment.methods[1].title}</h3>
+                  <p className="text-[#95d5b2] text-sm leading-relaxed">{t.repayment.methods[1].body}</p>
                 </div>
 
                 {/* Bank / Cash */}
@@ -609,10 +566,8 @@ export default function LandingPage() {
                       <path d="M6 36h36" stroke="#95d5b2" strokeWidth="2" strokeLinecap="round"/>
                     </svg>
                   </div>
-                  <h3 className="font-display font-bold text-white text-base mb-2">Bank Transfer or Cash</h3>
-                  <p className="text-[#95d5b2] text-sm leading-relaxed">
-                    Prefer a bank transfer or in-person cash payment? Both are accepted and reflected in your loan account within one business day.
-                  </p>
+                  <h3 className="font-display font-bold text-white text-base mb-2">{t.repayment.methods[2].title}</h3>
+                  <p className="text-[#95d5b2] text-sm leading-relaxed">{t.repayment.methods[2].body}</p>
                 </div>
               </div>
             </div>
@@ -626,10 +581,10 @@ export default function LandingPage() {
             <div className="max-w-6xl mx-auto">
               <header className="text-center mb-14">
                 <h2 id="why-heading" className="font-display text-3xl font-bold text-[#1b4332] mb-3">
-                  Why borrowers choose BorrowMe2K
+                  {t.why.title}
                 </h2>
                 <p className="text-[#52b788] text-base max-w-lg mx-auto">
-                  Built for Cameroon's financial reality, not a generic template.
+                  {t.why.subtitle}
                 </p>
               </header>
 
@@ -676,17 +631,17 @@ export default function LandingPage() {
                       </svg>
                     ),
                   },
-                ].map(({ title, body, icon }) => (
+                ].map(({ icon }, i) => (
                   <div
-                    key={title}
+                    key={i}
                     className="flex gap-5 p-6 rounded-2xl border border-[#e8f3ed] bg-[#f8fcf9] hover:border-[#2d6a4f]/30 transition-colors"
                   >
                     <div className="w-14 h-14 rounded-xl bg-white border border-[#d8e8df] flex items-center justify-center shrink-0">
                       {icon}
                     </div>
                     <div>
-                      <h3 className="font-display font-bold text-[#1b4332] text-base mb-2">{title}</h3>
-                      <p className="text-[#3a5a47] text-sm leading-relaxed">{body}</p>
+                      <h3 className="font-display font-bold text-[#1b4332] text-base mb-2">{t.why.reasons[i].title}</h3>
+                      <p className="text-[#3a5a47] text-sm leading-relaxed">{t.why.reasons[i].body}</p>
                     </div>
                   </div>
                 ))}
@@ -704,16 +659,16 @@ export default function LandingPage() {
             <div className="max-w-2xl mx-auto">
               <header className="text-center mb-12">
                 <h2 id="faq-heading" className="font-display text-3xl font-bold text-[#1b4332] mb-3">
-                  Frequently asked questions
+                  {t.faq.title}
                 </h2>
                 <p className="text-[#52b788] text-base">
-                  Everything you need to know before you apply.
+                  {t.faq.subtitle}
                 </p>
               </header>
 
               <div className="bg-white rounded-2xl border border-[#d8e8df] px-6 divide-y divide-[#eaf3ed]">
-                {FAQ.map(({ q, a }) => (
-                  <FAQItem key={q} q={q} a={a} />
+                {t.faq.items.map((item) => (
+                  <FAQItem key={item.q} q={item.q} a={item.a} />
                 ))}
               </div>
             </div>
@@ -730,10 +685,10 @@ export default function LandingPage() {
             }}/>
             <div className="max-w-2xl mx-auto text-center relative">
               <h2 id="cta-heading" className="font-display text-3xl sm:text-4xl font-bold text-white mb-4">
-                Ready to apply for your loan?
+                {t.cta.title}
               </h2>
               <p className="text-[#95d5b2] text-base mb-8 max-w-md mx-auto">
-                Create your account in two minutes. Your first loan application can be submitted the same day your identity is verified.
+                {t.cta.body}
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Link
@@ -741,14 +696,14 @@ export default function LandingPage() {
                   className="inline-flex items-center justify-center gap-2 bg-white text-[#1b4332] font-semibold px-8 py-3.5 rounded-xl hover:bg-[#f0faf4] transition-colors shadow-lg"
                   data-testid="link-cta-create-account"
                 >
-                  Create free account
+                  {t.cta.createAccount}
                 </Link>
                 <Link
                   href="/auth"
                   className="inline-flex items-center justify-center gap-2 bg-white/10 border border-white/20 text-white font-semibold px-8 py-3.5 rounded-xl hover:bg-white/20 transition-colors"
                   data-testid="link-cta-signin"
                 >
-                  Sign in
+                  {t.cta.signin}
                 </Link>
               </div>
             </div>
@@ -765,11 +720,11 @@ export default function LandingPage() {
                   <img src="/logo.png" alt="BorrowMe2K logo" className="h-8 w-auto brightness-0 invert" />
                 </a>
                 <p className="text-[#74c69d] text-sm leading-relaxed">
-                  Cameroon's online micro-lending platform. Fast, fair, collateral-free.
+                  {t.footer.tagline}
                 </p>
               </div>
               <nav aria-label="Loan products">
-                <p className="text-xs font-semibold text-[#52b788] uppercase tracking-wider mb-3">Loan products</p>
+                <p className="text-xs font-semibold text-[#52b788] uppercase tracking-wider mb-3">{t.footer.colProducts}</p>
                 <ul className="space-y-2">
                   {LOAN_PRODUCTS.map((p) => (
                     <li key={p.slug}>
@@ -784,26 +739,26 @@ export default function LandingPage() {
                 </ul>
               </nav>
               <nav aria-label="Site links">
-                <p className="text-xs font-semibold text-[#52b788] uppercase tracking-wider mb-3">Account</p>
+                <p className="text-xs font-semibold text-[#52b788] uppercase tracking-wider mb-3">{t.footer.colAccount}</p>
                 <ul className="space-y-2">
                   <li>
                     <Link href="/auth" className="text-[#95d5b2] text-sm hover:text-white transition-colors">
-                      Sign in
+                      {t.footer.linkSignin}
                     </Link>
                   </li>
                   <li>
                     <Link href="/auth?tab=signup" className="text-[#95d5b2] text-sm hover:text-white transition-colors">
-                      Create account
+                      {t.footer.linkCreate}
                     </Link>
                   </li>
                   <li>
                     <a href="#faq" className="text-[#95d5b2] text-sm hover:text-white transition-colors">
-                      FAQ
+                      {t.footer.linkFaq}
                     </a>
                   </li>
                   <li>
                     <a href="#how-it-works" className="text-[#95d5b2] text-sm hover:text-white transition-colors">
-                      How it works
+                      {t.footer.linkHow}
                     </a>
                   </li>
                 </ul>
@@ -811,10 +766,10 @@ export default function LandingPage() {
             </div>
             <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
               <p className="text-[#52b788] text-xs">
-                © {new Date().getFullYear()} BorrowMe2K. All rights reserved. Serving borrowers across Cameroon.
+                {t.footer.copyright(new Date().getFullYear())}
               </p>
               <p className="text-[#3a5a47] text-xs">
-                Amounts in Central African CFA Franc (XAF / FCFA)
+                {t.footer.currency}
               </p>
             </div>
           </div>

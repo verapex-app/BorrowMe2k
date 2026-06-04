@@ -53,6 +53,7 @@ export interface IStorage {
   listKycPoolLinks(): Promise<(KycPoolLink & { assignedUsername: string | null })[]>;
   deleteKycPoolLink(id: number): Promise<void>;
   assignKycLinkToUser(userId: number): Promise<string | null>;
+  lockKycLink(userId: number): Promise<void>;
   releaseKycLinkFromUser(userId: number): Promise<void>;
   markKycSubmitted(userId: number): Promise<void>;
   autoApproveStalePendingLoans(): Promise<{ loanId: number; userId: number }[]>;
@@ -292,28 +293,71 @@ export class DatabaseStorage implements IStorage {
   }
 
   async assignKycLinkToUser(userId: number): Promise<string | null> {
-    const [available] = await db
-      .select()
-      .from(kycLinkPool)
-      .where(isNull(kycLinkPool.assignedUserId))
-      .orderBy(asc(kycLinkPool.createdAt))
-      .limit(1);
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
 
-    if (!available) return null;
+      // 1. Try a completely unassigned link first
+      let result = await client.query(
+        `SELECT id, raw_link FROM kyc_link_pool
+         WHERE assigned_user_id IS NULL
+         ORDER BY created_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED`
+      );
 
-    const personalizedLink = buildPersonalizedKycLink(available.rawLink, userId);
+      let linkRow = result.rows[0] as { id: number; raw_link: string; assigned_user_id?: number } | undefined;
+      let recycledFromUserId: number | null = null;
 
+      // 2. If none free, recycle a link assigned to a not_submitted user who never started (locked_at IS NULL, assigned >30min ago)
+      if (!linkRow) {
+        result = await client.query(
+          `SELECT kp.id, kp.raw_link, kp.assigned_user_id
+           FROM kyc_link_pool kp
+           JOIN users u ON u.id = kp.assigned_user_id
+           WHERE u.kyc_status = 'not_submitted'
+             AND kp.locked_at IS NULL
+             AND kp.assigned_at < NOW() - INTERVAL '30 minutes'
+             AND kp.assigned_user_id != $1
+           ORDER BY kp.assigned_at ASC LIMIT 1 FOR UPDATE SKIP LOCKED`,
+          [userId]
+        );
+        linkRow = result.rows[0];
+        if (linkRow) recycledFromUserId = linkRow.assigned_user_id ?? null;
+      }
+
+      if (!linkRow) {
+        await client.query("ROLLBACK");
+        return null;
+      }
+
+      // 3. Clear old user's kyc_link if recycling
+      if (recycledFromUserId) {
+        await client.query(`UPDATE users SET kyc_link = NULL WHERE id = $1`, [recycledFromUserId]);
+      }
+
+      // 4. Personalize and assign
+      const personalizedLink = buildPersonalizedKycLink(linkRow.raw_link, userId);
+
+      await client.query(
+        `UPDATE kyc_link_pool SET assigned_user_id = $1, assigned_at = NOW(), locked_at = NULL WHERE id = $2`,
+        [userId, linkRow.id]
+      );
+      await client.query(`UPDATE users SET kyc_link = $1 WHERE id = $2`, [personalizedLink, userId]);
+
+      await client.query("COMMIT");
+      return personalizedLink;
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
+    }
+  }
+
+  async lockKycLink(userId: number): Promise<void> {
     await db
       .update(kycLinkPool)
-      .set({ assignedUserId: userId, assignedAt: new Date() })
-      .where(eq(kycLinkPool.id, available.id));
-
-    await db
-      .update(users)
-      .set({ kycLink: personalizedLink })
-      .where(eq(users.id, userId));
-
-    return personalizedLink;
+      .set({ lockedAt: new Date() })
+      .where(eq(kycLinkPool.assignedUserId, userId));
   }
 
   async releaseKycLinkFromUser(userId: number): Promise<void> {
