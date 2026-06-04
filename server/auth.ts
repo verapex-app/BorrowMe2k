@@ -74,7 +74,7 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/send-otp", async (req, res) => {
-    const { email } = req.body;
+    const { email, lang } = req.body;
     if (!email || typeof email !== "string") {
       return res.status(400).json({ message: "Email is required" });
     }
@@ -85,8 +85,9 @@ export function setupAuth(app: Express) {
     if (existing) {
       return res.status(409).json({ message: "This email is already registered. Please log in instead." });
     }
+    const safeLang: "en" | "fr" = lang === "fr" ? "fr" : "en";
     try {
-      await sendOtpEmail(email);
+      await sendOtpEmail(email, safeLang);
       res.json({ message: "OTP sent" });
     } catch (err: any) {
       res.status(500).json({ message: err.message ?? "Failed to send OTP email. Check your email address." });

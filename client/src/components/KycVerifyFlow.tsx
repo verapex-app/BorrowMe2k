@@ -17,6 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import type { User } from "@shared/schema";
+import { useLang } from "@/lib/i18n";
 
 const profileSchema = z.object({
   firstName: z
@@ -248,6 +249,19 @@ export function KycVerifyFlow({
   skipWaiting = false,
 }: KycVerifyFlowProps) {
   const { toast } = useToast();
+  const { lang } = useLang();
+
+  const kycLinkWithLang = (() => {
+    if (!kycLink) return kycLink;
+    try {
+      const url = new URL(kycLink);
+      url.searchParams.set("language", lang);
+      return url.toString();
+    } catch {
+      const sep = kycLink.includes("?") ? "&" : "?";
+      return `${kycLink}${sep}language=${lang}`;
+    }
+  })();
 
   const waitingUntil: Date | null = (() => {
     if (skipWaiting) return null;
@@ -444,7 +458,7 @@ export function KycVerifyFlow({
           Verify Your Identity
         </h2>
         <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed max-w-xs">
-          Have a valid Cameroonian government-issued ID ready — the process
+          Have a valid government-issued ID ready — the process
           takes under 3 minutes.
         </p>
       </div>
@@ -465,7 +479,7 @@ export function KycVerifyFlow({
 
       <div className="mt-auto space-y-2">
         <a
-          href={kycLink}
+          href={kycLinkWithLang}
           target="_blank"
           rel="noopener noreferrer"
           data-testid="link-start-verification"

@@ -33,30 +33,45 @@ export function verifyOtp(email: string, code: string): boolean {
   return true;
 }
 
-export async function sendOtpEmail(email: string): Promise<string> {
+export async function sendOtpEmail(email: string, lang: "en" | "fr" = "en"): Promise<string> {
   const code = generateOtp();
   storeOtp(email, code);
+
+  const isFr = lang === "fr";
+  const subject = isFr
+    ? "Votre code de vérification BorrowMe2K"
+    : "Your BorrowMe2K verification code";
+  const intro = isFr
+    ? "Votre code de vérification d'e-mail est :"
+    : "Your email verification code is:";
+  const expiry = isFr
+    ? "Ce code expire dans 10 minutes. Ne le partagez pas."
+    : "This code expires in 10 minutes. Do not share it with anyone.";
 
   try {
     await resend.emails.send({
       from: FROM,
       to: email,
-      subject: "Your BorrowMe2K verification code",
+      subject,
       headers: { "X-Priority": "1", "X-MSMail-Priority": "High", "Importance": "High" },
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;background:#f9fafb;border-radius:12px;">
           <h2 style="color:#1d4ed8;margin-bottom:8px;">BorrowMe2K</h2>
-          <p style="color:#374151;font-size:15px;">Your email verification code is:</p>
+          <p style="color:#374151;font-size:15px;">${intro}</p>
           <div style="font-size:40px;font-weight:800;letter-spacing:12px;color:#1d4ed8;margin:24px 0;text-align:center;">
             ${code}
           </div>
-          <p style="color:#6b7280;font-size:13px;">This code expires in 10 minutes. Do not share it with anyone.</p>
+          <p style="color:#6b7280;font-size:13px;">${expiry}</p>
         </div>
       `,
     });
   } catch (err: any) {
     otpStore.delete(email.toLowerCase());
-    throw new Error("Failed to send verification email. Please check the address and try again.");
+    throw new Error(
+      isFr
+        ? "Échec de l'envoi de l'e-mail de vérification. Vérifiez l'adresse et réessayez."
+        : "Failed to send verification email. Please check the address and try again."
+    );
   }
 
   return code;

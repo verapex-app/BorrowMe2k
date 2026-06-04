@@ -26,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, ArrowRight, Mail, CheckCircle2, Loader2 } from "lucide-react";
 import { z } from "zod";
 import { useLang, LangToggle, translations } from "@/lib/i18n";
+import { detectCountryFromTimezone } from "@/lib/countryPhone";
 
 
 const loginSchema = z.object({
@@ -317,6 +318,7 @@ function RegisterWizard({
   t: AuthT;
 }) {
   const { toast } = useToast();
+  const { lang } = useLang();
   const [step, setStep] = useState(1);
   const [collected, setCollected] = useState<Partial<InsertUser>>({});
   const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
@@ -324,10 +326,11 @@ function RegisterWizard({
   const [otpSent, setOtpSent] = useState(false);
 
   const r = t.register;
+  const countryInfo = detectCountryFromTimezone();
 
   const step1Form = useForm<Step1Data>({
     resolver: zodResolver(step1Schema),
-    defaultValues: { fullName: "", username: "", city: "Douala" },
+    defaultValues: { fullName: "", username: "", city: "" },
   });
 
   const step2Form = useForm<Step2Data>({
@@ -371,7 +374,7 @@ function RegisterWizard({
     const data = step2Form.getValues();
     setSendingOtp(true);
     try {
-      await postJson("/api/send-otp", { email: data.email });
+      await postJson("/api/send-otp", { email: data.email, lang });
       setCollected((prev) => ({ ...prev, ...data }));
       setOtpSent(true);
       setStep(3);
@@ -494,7 +497,7 @@ function RegisterWizard({
                 <FormItem>
                   <FormLabel>{r.phoneLabel}</FormLabel>
                   <FormControl>
-                    <Input placeholder={r.phonePlaceholder} {...field} />
+                    <Input placeholder={countryInfo.phonePlaceholder} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
